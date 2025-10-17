@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Awesome PocketBase Demo Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --surface: #ffffff;
+        --surface-muted: #f6f7fb;
+        --surface-elevated: #fdfdff;
+        --border: rgba(148, 163, 184, 0.35);
+        --border-strong: rgba(79, 70, 229, 0.55);
+        --text-main: #0f172a;
+        --text-subtle: #475569;
+        --accent: #4338ca;
+        --accent-soft: #eef2ff;
+        --radius-lg: 20px;
+        --radius-md: 14px;
+        background: var(--surface-muted);
+        color: var(--text-main);
+        line-height: 1.6;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top left, #eef2ff, #f8fafc 55%);
+        padding: clamp(1.5rem, 2vw + 1.5rem, 3.5rem);
+      }
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: clamp(1.75rem, 2vw + 2rem, 3rem);
+        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+      }
+      header {
+        display: grid;
+        gap: 0.75rem;
+      }
+      header h1 {
+        margin: 0;
+        font-size: clamp(2.2rem, 4vw + 1.2rem, 3.3rem);
+        letter-spacing: -0.02em;
+      }
+      header p {
+        margin: 0;
+        max-width: 720px;
+        color: var(--text-subtle);
+        font-size: 1.08rem;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+      }
+      .hero-actions a,
+      .hero-actions button {
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(79, 70, 229, 0.4);
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(99, 102, 241, 0.3));
+        color: var(--accent);
+        padding: 0.65rem 1.1rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        gap: 0.45rem;
+        align-items: center;
+      }
+      .hero-actions button {
+        border: none;
+        cursor: pointer;
+      }
+      .hero-actions .ghost {
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(79, 70, 229, 0.22);
+        color: var(--text-subtle);
+      }
+      .hero-actions .ghost:hover,
+      .hero-actions .ghost:focus {
+        background: rgba(99, 102, 241, 0.16);
+        color: var(--accent);
+      }
+      .steps {
+        margin: clamp(2.2rem, 2vw + 1.8rem, 3.1rem) 0 1.5rem;
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+      .steps button {
+        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        padding: 0.85rem 1rem;
+        text-align: left;
+        font-weight: 600;
+        background: var(--surface-muted);
+        color: var(--text-main);
+        cursor: pointer;
+        display: grid;
+        gap: 0.35rem;
+        transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+      }
+      .steps button span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 14px;
+        background: rgba(79, 70, 229, 0.14);
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .steps button:hover {
+        background: var(--accent-soft);
+        transform: translateY(-1px);
+      }
+      .steps button.active {
+        border-color: var(--border-strong);
+        background: var(--surface-elevated);
+        box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.18);
+      }
+      .panel {
+        display: none;
+      }
+      .panel.active {
+        display: grid;
+        gap: 1.35rem;
+      }
+      .panel h2 {
+        margin: 0;
+        font-size: clamp(1.7rem, 2vw + 1.2rem, 2.25rem);
+        letter-spacing: -0.01em;
+      }
+      .panel > p {
+        margin: 0;
+        color: var(--text-subtle);
+      }
+      .panel-card {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: var(--surface-elevated);
+        padding: clamp(1.25rem, 2vw + 1rem, 2rem);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.05);
+        display: grid;
+        gap: 1.25rem;
+      }
+      .readme-card {
+        gap: 1.5rem;
+      }
+      .readme-overview {
+        display: grid;
+        gap: 1.25rem;
+      }
+      @media (min-width: 860px) {
+        .readme-overview {
+          grid-template-columns: minmax(0, 1fr) minmax(220px, 0.65fr);
+          align-items: start;
+        }
+      }
+      .stat-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+      .stat {
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        padding: 0.85rem 1rem;
+        display: grid;
+        gap: 0.2rem;
+      }
+      .stat strong {
+        font-size: 1.4rem;
+        letter-spacing: -0.01em;
+      }
+      .stat span {
+        color: var(--text-subtle);
+        font-size: 0.92rem;
+      }
+      .readme-nav {
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        padding: 1rem 1.2rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .readme-nav h3 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+      .readme-nav ol {
+        margin: 0;
+        padding-left: 1.2rem;
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.95rem;
+      }
+      .readme-nav a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .readme-nav a:hover,
+      .readme-nav a:focus {
+        text-decoration: underline;
+      }
+      .nav-empty,
+      .log-empty {
+        margin: 0;
+        color: var(--text-subtle);
+        font-size: 0.9rem;
+        font-style: italic;
+      }
+      .readme-shell {
+        display: grid;
+        gap: 1rem;
+      }
+      #status {
+        color: var(--text-subtle);
+        font-style: italic;
+      }
+      article {
+        max-height: 520px;
+        overflow: auto;
+        padding: 1.15rem 1.35rem;
+        background: var(--surface);
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(203, 213, 225, 0.6);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      }
+      article h1,
+      article h2,
+      article h3,
+      article h4,
+      article h5,
+      article h6 {
+        margin-top: 2rem;
+        margin-bottom: 0.75rem;
+        line-height: 1.25;
+      }
+      article h1 {
+        margin-top: 0.25rem;
+        font-size: clamp(1.8rem, 2vw + 1.2rem, 2.5rem);
+      }
+      article ul {
+        padding-left: 1.4rem;
+      }
+      article li {
+        margin: 0.45rem 0;
+      }
+      article blockquote {
+        margin: 1.3rem 0;
+        padding: 0.95rem 1.2rem;
+        border-left: 4px solid rgba(79, 70, 229, 0.4);
+        background: rgba(79, 70, 229, 0.08);
+        border-radius: 10px;
+      }
+      article a {
+        color: #1d4ed8;
+      }
+      .connect-grid {
+        display: grid;
+        gap: 1.5rem;
+      }
+      .connect-primary {
+        display: grid;
+        gap: 1rem;
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        padding: 1.25rem 1.4rem;
+      }
+      .connect-primary button {
+        justify-self: start;
+        padding: 0.85rem 1.4rem;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        color: white;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition: transform 160ms ease, box-shadow 160ms ease;
+      }
+      .connect-primary button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 30px rgba(79, 70, 229, 0.25);
+      }
+      .connect-primary button:disabled {
+        opacity: 0.65;
+        cursor: progress;
+      }
+      .connect-status {
+        font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+        font-size: 0.95rem;
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(203, 213, 225, 0.8);
+        background: var(--surface-muted);
+        padding: 1rem 1.2rem;
+        white-space: pre-line;
+        color: var(--text-main);
+      }
+      .connect-status.success {
+        border-color: rgba(34, 197, 94, 0.6);
+        background: rgba(220, 252, 231, 0.7);
+        color: #166534;
+      }
+      .connect-status.error {
+        border-color: rgba(248, 113, 113, 0.6);
+        background: rgba(254, 226, 226, 0.7);
+        color: #991b1b;
+      }
+      .connect-log {
+        display: grid;
+        gap: 0.65rem;
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        padding: 1.1rem 1.2rem;
+      }
+      .connect-log h3 {
+        margin: 0;
+        font-size: 1.05rem;
+      }
+      .connect-log ol {
+        margin: 0;
+        padding-left: 1.2rem;
+        display: grid;
+        gap: 0.4rem;
+        font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+        font-size: 0.85rem;
+        color: var(--text-subtle);
+      }
+      .connect-log li[data-status="success"] {
+        color: #15803d;
+      }
+      .connect-log li[data-status="error"] {
+        color: #b91c1c;
+      }
+      .repo-grid {
+        display: grid;
+        gap: 1.25rem;
+      }
+      @media (min-width: 820px) {
+        .repo-grid {
+          grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
+        }
+      }
+      .repo-list {
+        display: grid;
+        gap: 0.65rem;
+      }
+      .repo-list button {
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: var(--surface);
+        padding: 0.7rem 0.9rem;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-main);
+        cursor: pointer;
+        transition: border-color 150ms ease, background 150ms ease;
+      }
+      .repo-list button:hover,
+      .repo-list button.active {
+        background: var(--accent-soft);
+        border-color: var(--border-strong);
+      }
+      .repo-preview-wrapper {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .repo-preview {
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(203, 213, 225, 0.7);
+        background: var(--surface);
+        padding: 1.1rem 1.25rem;
+        font-family: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+        font-size: 0.88rem;
+        white-space: pre;
+        overflow: auto;
+        min-height: 240px;
+        position: relative;
+      }
+      .repo-preview .line {
+        display: block;
+        white-space: pre;
+      }
+      .repo-preview .line-number {
+        display: inline-block;
+        width: 2.8rem;
+        color: rgba(100, 116, 139, 0.9);
+      }
+      .repo-status {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-subtle);
+        font-style: italic;
+      }
+      .repo-status[data-state="error"] {
+        color: #b91c1c;
+        font-style: normal;
+      }
+      .repo-status[data-state="success"] {
+        color: #166534;
+        font-style: normal;
+      }
+      footer {
+        margin-top: 2.75rem;
+        color: var(--text-subtle);
+        text-align: center;
+        font-size: 0.92rem;
+      }
+      @media (max-width: 640px) {
+        body {
+          padding: 1.1rem;
+        }
+        main {
+          border-radius: 16px;
+        }
+        article {
+          max-height: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Awesome PocketBase Demo Hub</h1>
+        <p>
+          A live, self-contained walkthrough of the Awesome PocketBase repository. Each section pulls
+          real project data so you can see exactly what works (and what fails) in this environment.
+        </p>
+        <div class="hero-actions">
+          <a href="../README.md" target="_blank" rel="noopener">Open README directly</a>
+          <button type="button" id="refresh-demo">Refresh all data</button>
+          <button type="button" id="reset-demo" class="ghost">Clear saved data</button>
+        </div>
+      </header>
+      <nav class="steps" role="tablist" aria-label="PocketBase walkthrough" aria-orientation="horizontal">
+        <button class="active" role="tab" aria-selected="true" aria-controls="panel-readme" id="tab-readme">
+          <span>1</span>
+          Browse the Awesome list
+        </button>
+        <button role="tab" aria-selected="false" aria-controls="panel-connect" id="tab-connect">
+          <span>2</span>
+          Probe the official site
+        </button>
+        <button role="tab" aria-selected="false" aria-controls="panel-repo" id="tab-repo">
+          <span>3</span>
+          Inspect repo assets
+        </button>
+      </nav>
+      <section class="panel active" id="panel-readme" role="tabpanel" aria-labelledby="tab-readme">
+        <h2>Step 1 · Browse the Awesome PocketBase catalog</h2>
+        <p>
+          The viewer below streams <code>README.md</code> from the repository, then summarises the content with live metrics so
+          you can immediately see how many curated entries and categories are available.
+        </p>
+        <div class="panel-card readme-card">
+          <div class="readme-overview">
+            <div class="stat-grid" id="readme-stats" aria-live="polite">
+              <div class="stat" data-stat="categories">
+                <strong>—</strong>
+                <span>Categories discovered</span>
+              </div>
+              <div class="stat" data-stat="entries">
+                <strong>—</strong>
+                <span>Resources listed</span>
+              </div>
+              <div class="stat" data-stat="domains">
+                <strong>—</strong>
+                <span>Unique domains referenced</span>
+              </div>
+              <div class="stat" data-stat="updated">
+                <strong>—</strong>
+                <span>README last updated</span>
+              </div>
+            </div>
+            <nav class="readme-nav" aria-label="README categories">
+              <h3>Jump to a category</h3>
+              <p class="nav-empty" id="readme-nav-empty">Load the README to populate navigation.</p>
+              <ol id="readme-nav-list"></ol>
+            </nav>
+          </div>
+          <div class="readme-shell" role="group" aria-live="polite" aria-busy="false">
+            <p id="status" role="status" aria-live="polite" aria-atomic="true">Loading Awesome PocketBase…</p>
+            <article id="content" role="document" hidden aria-live="polite" aria-busy="false"></article>
+          </div>
+        </div>
+      </section>
+      <section class="panel" id="panel-connect" role="tabpanel" aria-labelledby="tab-connect">
+        <h2>Step 2 · Try a live check against pocketbase.io</h2>
+        <p>
+          Curious whether this sandbox can contact the official PocketBase website? Trigger the probe to capture the actual
+          HTTP status and latency, then review the attempt history below.
+        </p>
+        <div class="panel-card">
+          <div class="connect-grid">
+            <div class="connect-primary">
+              <button id="connectivity-btn" type="button" aria-describedby="connectivity-result">Run connectivity probe</button>
+              <div id="connectivity-result" class="connect-status" role="status" aria-live="polite" aria-atomic="true">
+                The probe hasn’t been run yet.
+              </div>
+            </div>
+            <div class="connect-log" aria-live="polite" role="region">
+              <h3>Probe history</h3>
+              <p class="log-empty" id="connectivity-empty">Run the probe to capture history.</p>
+              <ol id="connectivity-log"></ol>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="panel" id="panel-repo" role="tabpanel" aria-labelledby="tab-repo">
+        <h2>Step 3 · Inspect repository docs instantly</h2>
+        <p>
+          With direct file access, we can surface supporting documentation without leaving the walkthrough. Choose a file to
+          preview a live slice from the project, complete with line numbers for quick reference.
+        </p>
+        <div class="panel-card">
+          <div class="repo-grid">
+            <div class="repo-list" role="group" aria-label="Repository documents">
+              <button type="button" class="active" data-file="README.md">README.md</button>
+              <button type="button" data-file="contributing.md">contributing.md</button>
+              <button type="button" data-file="docs/OVERVIEW.md">docs/OVERVIEW.md</button>
+            </div>
+            <div class="repo-preview-wrapper">
+              <div class="repo-preview" id="repo-preview" role="region" aria-live="polite" aria-busy="false">
+                Select a document to load a preview.
+              </div>
+              <p class="repo-status" id="repo-status" role="status" aria-live="polite" aria-atomic="true">
+                No document loaded yet.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <footer>
+        Switch tabs anytime—the viewer preserves previously loaded data so you can compare outcomes side by side without
+        rerunning every step.
+      </footer>
+    </main>
+    <script>
+
+      const tabButtons = Array.from(document.querySelectorAll(".steps button"));
+      const panels = Array.from(document.querySelectorAll(".panel"));
+
+      function activateTab(target, { focus = false } = {}) {
+        if (!target) return;
+        const controlledId = target.getAttribute("aria-controls");
+        tabButtons.forEach((btn) => {
+          const isActive = btn === target;
+          btn.classList.toggle("active", isActive);
+          btn.setAttribute("aria-selected", isActive ? "true" : "false");
+          btn.setAttribute("tabindex", isActive ? "0" : "-1");
+        });
+        panels.forEach((panel) => {
+          panel.classList.toggle("active", panel.id === controlledId);
+        });
+        if (focus) {
+          target.focus();
+        }
+      }
+
+      const initialTab =
+        tabButtons.find((btn) => btn.classList.contains("active")) ||
+        tabButtons[0];
+      activateTab(initialTab);
+
+      tabButtons.forEach((button, index) => {
+        button.addEventListener("click", () => activateTab(button));
+        button.addEventListener("keydown", (event) => {
+          const { key } = event;
+          if (key === "ArrowRight" || key === "ArrowDown") {
+            event.preventDefault();
+            const next = tabButtons[(index + 1) % tabButtons.length];
+            activateTab(next, { focus: true });
+          } else if (key === "ArrowLeft" || key === "ArrowUp") {
+            event.preventDefault();
+            const prev = tabButtons[(index - 1 + tabButtons.length) % tabButtons.length];
+            activateTab(prev, { focus: true });
+          } else if (key === "Home") {
+            event.preventDefault();
+            activateTab(tabButtons[0], { focus: true });
+          } else if (key === "End") {
+            event.preventDefault();
+            activateTab(tabButtons[tabButtons.length - 1], { focus: true });
+          }
+        });
+      });
+
+      const status = document.getElementById("status");
+      const content = document.getElementById("content");
+      const readmeShell = document.querySelector(".readme-shell");
+      const readmeNavList = document.getElementById("readme-nav-list");
+      const readmeNavEmpty = document.getElementById("readme-nav-empty");
+      const connectivityEmpty = document.getElementById("connectivity-empty");
+      const statBlocks = {
+        categories: document.querySelector('[data-stat="categories"] strong'),
+        entries: document.querySelector('[data-stat="entries"] strong'),
+        domains: document.querySelector('[data-stat="domains"] strong'),
+        updated: document.querySelector('[data-stat="updated"] strong'),
+      };
+      const repoButtons = Array.from(document.querySelectorAll(".repo-list button"));
+      const repoPreview = document.getElementById("repo-preview");
+      const repoStatus = document.getElementById("repo-status");
+      const connectivityButton = document.getElementById("connectivity-btn");
+      const connectivityResult = document.getElementById("connectivity-result");
+      const connectivityLog = document.getElementById("connectivity-log");
+      const refreshButton = document.getElementById("refresh-demo");
+      const resetButton = document.getElementById("reset-demo");
+
+      const STORAGE_KEYS = {
+        stats: "apb-demo:stats",
+        nav: "apb-demo:nav",
+        probes: "apb-demo:probe-history",
+        readmeHtml: "apb-demo:readme-html",
+        docs: "apb-demo:docs",
+      };
+      const PROBE_TIMEOUT_MS = 6000;
+      const PROBE_HISTORY_LIMIT = 8;
+      const PROBE_URL = "https://pocketbase.io/";
+
+      const storage = {
+        read(key, fallback = null) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw);
+          } catch (error) {
+            console.warn("Storage read failed", error);
+            return fallback;
+          }
+        },
+        write(key, value) {
+          try {
+            localStorage.setItem(key, JSON.stringify(value));
+          } catch (error) {
+            console.warn("Storage write failed", error);
+          }
+        },
+        remove(key) {
+          try {
+            localStorage.removeItem(key);
+          } catch (error) {
+            console.warn("Storage remove failed", error);
+          }
+        },
+      };
+
+      function formatTimestamp(date) {
+        try {
+          return new Intl.DateTimeFormat(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(date);
+        } catch (error) {
+          return date.toLocaleString();
+        }
+      }
+
+      function setConnectivityResultMessage(text, state) {
+        connectivityResult.textContent = text;
+        connectivityResult.classList.remove("success", "error");
+        if (state === "success" || state === "error") {
+          connectivityResult.classList.add(state);
+        }
+        connectivityResult.setAttribute(
+          "aria-busy",
+          state === "pending" ? "true" : "false"
+        );
+      }
+
+      function updateStatsUI(stats = {}) {
+        const { categories, entries, domains, updatedISO } = stats;
+        statBlocks.categories.textContent =
+          typeof categories === "number" ? categories.toString() : "—";
+        statBlocks.entries.textContent =
+          typeof entries === "number" ? entries.toString() : "—";
+        statBlocks.domains.textContent =
+          typeof domains === "number" ? domains.toString() : "—";
+        if (updatedISO) {
+          const date = new Date(updatedISO);
+          statBlocks.updated.textContent = Number.isNaN(date.getTime())
+            ? updatedISO
+            : formatTimestamp(date);
+        } else {
+          statBlocks.updated.textContent = "—";
+        }
+      }
+
+      function renderNav(items = []) {
+        readmeNavList.innerHTML = "";
+        if (!items.length) {
+          readmeNavEmpty.hidden = false;
+          readmeNavList.hidden = true;
+          return;
+        }
+        readmeNavEmpty.hidden = true;
+        readmeNavList.hidden = false;
+        for (const item of items) {
+          const li = document.createElement("li");
+          const link = document.createElement("a");
+          link.href = `#${item.id}`;
+          link.textContent = item.text;
+          li.append(link);
+          readmeNavList.append(li);
+        }
+      }
+
+      function renderProbeHistory(history = []) {
+        connectivityLog.innerHTML = "";
+        if (!history.length) {
+          connectivityEmpty.hidden = false;
+          connectivityLog.hidden = true;
+          return;
+        }
+        connectivityEmpty.hidden = true;
+        connectivityLog.hidden = false;
+        history.forEach((entry) => {
+          const li = document.createElement("li");
+          li.dataset.status = entry.ok ? "success" : "error";
+          const time = new Date(entry.timestamp);
+          const timestamp = Number.isNaN(time.getTime())
+            ? entry.timestamp
+            : time.toLocaleTimeString();
+          li.textContent = `${timestamp} – ${entry.summary}`;
+          connectivityLog.append(li);
+        });
+      }
+
+      function setRepoStatus(message, state = null) {
+        if (!repoStatus) return;
+        repoStatus.textContent = message;
+        if (state) {
+          repoStatus.dataset.state = state;
+        } else {
+          delete repoStatus.dataset.state;
+        }
+      }
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function escapeAttribute(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function decodeBasicEntities(str) {
+        return String(str)
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'");
+      }
+
+      function formatInline(text) {
+        const escaped = escapeHtml(text);
+        return escaped
+          .replace(
+            /!\[([^\]]*)\]\(([^)\s]+)(?:\s+(?:"([^"]*)"|&quot;([^&]*)&quot;))?\)/g,
+            (_, alt, url, title1, title2) => {
+              const title = title1 || title2;
+              const rawUrl = decodeBasicEntities(url);
+              const rawAlt = decodeBasicEntities(alt);
+              const rawTitle = title ? decodeBasicEntities(title) : "";
+              const titleAttr = rawTitle ? ` title="${escapeAttribute(rawTitle)}"` : "";
+              return `<img src="${escapeAttribute(rawUrl)}" alt="${escapeAttribute(rawAlt)}" loading="lazy"${titleAttr}>`;
+            }
+          )
+          .replace(
+            /\[([^\]]+)\]\(([^)\s]+)(?:\s+(?:"([^"]*)"|&quot;([^&]*)&quot;))?\)/g,
+            (_, label, url, title1, title2) => {
+              const safeLabel = label;
+              const rawUrl = decodeBasicEntities(url);
+              const title = title1 || title2;
+              const rawTitle = title ? decodeBasicEntities(title) : "";
+              const titleAttr = rawTitle ? ` title="${escapeAttribute(rawTitle)}"` : "";
+              return `<a href="${escapeAttribute(rawUrl)}" target="_blank" rel="noopener noreferrer"${titleAttr}>${safeLabel}</a>`;
+            }
+          )
+          .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+          .replace(/`([^`]+)`/g, "<code>$1</code>")
+          .replace(
+            /\[([^\]]+)\]\(([^)]+)\)/g,
+            (_, label, url) => {
+              const safeLabel = label;
+              const rawUrl = decodeBasicEntities(url.trim());
+              return `<a href="${escapeAttribute(rawUrl)}" target="_blank" rel="noopener noreferrer">${safeLabel}</a>`;
+            }
+          );
+      }
+
+      function slugify(text) {
+        const base = text
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .replace(/-{2,}/g, "-");
+        return base || "section";
+      }
+
+      function renderMarkdown(md) {
+        const lines = md.split(/\r?\n/);
+        const html = [];
+        const headings = [];
+        const slugCounts = Object.create(null);
+        const listStack = [];
+        let paragraph = [];
+        let blockquote = [];
+        let codeBlock = false;
+        let codeFence = null;
+
+        const flushParagraph = () => {
+          if (!paragraph.length) return;
+          html.push(`<p>${formatInline(paragraph.join(" "))}</p>`);
+          paragraph = [];
+        };
+
+        const flushBlockquote = () => {
+          if (!blockquote.length) return;
+          html.push(`<blockquote><p>${formatInline(blockquote.join(" "))}</p></blockquote>`);
+          blockquote = [];
+        };
+
+        const closeLists = (indent) => {
+          while (listStack.length && indent < listStack[listStack.length - 1]) {
+            html.push("</ul>");
+            listStack.pop();
+          }
+        };
+
+        const ensureList = (indent) => {
+          if (!listStack.length || indent > listStack[listStack.length - 1]) {
+            listStack.push(indent);
+            html.push("<ul>");
+          } else if (indent < listStack[listStack.length - 1]) {
+            closeLists(indent);
+            if (!listStack.length || indent > listStack[listStack.length - 1]) {
+              listStack.push(indent);
+              html.push("<ul>");
+            }
+          }
+        };
+
+        for (const rawLine of lines) {
+          const line = rawLine.replace(/\s+$/, "");
+
+          const fenceMatch = line.match(/^```(.*)$/);
+          if (fenceMatch) {
+            if (codeBlock) {
+              html.push("</code></pre>");
+              codeBlock = false;
+              codeFence = null;
+            } else {
+              flushParagraph();
+              flushBlockquote();
+              closeLists(-1);
+              listStack.length = 0;
+              codeBlock = true;
+              codeFence = fenceMatch[1].trim();
+              const fenceLabel = codeFence ? ` data-lang="${escapeHtml(codeFence)}"` : "";
+              html.push(`<pre class="code-block"${fenceLabel}><code>`);
+            }
+            continue;
+          }
+
+          if (codeBlock) {
+            html.push(`${escapeHtml(line)}\n`);
+            continue;
+          }
+
+          if (!line.trim()) {
+            flushParagraph();
+            flushBlockquote();
+            closeLists(-1);
+            continue;
+          }
+
+          const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+          if (headingMatch) {
+            flushParagraph();
+            flushBlockquote();
+            closeLists(-1);
+            listStack.length = 0;
+            const level = headingMatch[1].length;
+            const text = headingMatch[2].trim();
+            const baseSlug = slugify(text);
+            const slugIndex = (slugCounts[baseSlug] = (slugCounts[baseSlug] || 0) + 1);
+            const slug = slugIndex > 1 ? `${baseSlug}-${slugIndex}` : baseSlug;
+            headings.push({ level, text, id: slug });
+            html.push(`<h${level} id="${slug}">${formatInline(text)}</h${level}>`);
+            continue;
+          }
+
+          if (line.startsWith(">")) {
+            flushParagraph();
+            closeLists(-1);
+            listStack.length = 0;
+            blockquote.push(line.replace(/^>\s?/, "").trim());
+            continue;
+          }
+
+          if (blockquote.length) {
+            flushBlockquote();
+          }
+
+          const listMatch = line.match(/^(\s*)[-*]\s+(.*)$/);
+          if (listMatch) {
+            flushParagraph();
+            const indent = Math.floor(listMatch[1].replace(/\t/g, "  ").length / 2);
+            ensureList(indent);
+            const itemText = listMatch[2].trim();
+            html.push(`<li>${formatInline(itemText)}</li>`);
+            continue;
+          }
+
+          closeLists(-1);
+          listStack.length = 0;
+          paragraph.push(line.trim());
+        }
+
+        flushParagraph();
+        flushBlockquote();
+        closeLists(-1);
+        while (listStack.length) {
+          html.push("</ul>");
+          listStack.pop();
+        }
+        if (codeBlock) {
+          html.push("</code></pre>");
+        }
+
+        return { html: html.join("\n"), headings };
+      }
+
+      function deriveReadmeStats(markdown, lastModifiedHeader) {
+        const lines = markdown.split(/\r?\n/);
+        const categoryCount = lines.filter((line) => /^##\s+[^#]/.test(line)).length;
+        const entryCount = lines.filter((line) => /^\s*[-*]\s+\[[^\]]+\]\([^\)]+\)/.test(line)).length;
+        const domains = new Set();
+        const linkRegex = /\[[^\]]+\]\(([^)]+)\)/g;
+        for (const line of lines) {
+          let match;
+          while ((match = linkRegex.exec(line))) {
+            try {
+              const url = new URL(match[1]);
+              domains.add(url.hostname.replace(/^www\./, ""));
+            } catch (error) {
+              // ignore invalid URLs
+            }
+          }
+        }
+
+        let updated = null;
+        if (lastModifiedHeader) {
+          const parsed = new Date(lastModifiedHeader);
+          if (!Number.isNaN(parsed.getTime())) {
+            updated = parsed;
+          }
+        }
+        if (!updated) {
+          updated = new Date();
+        }
+
+        return {
+          categories: categoryCount,
+          entries: entryCount,
+          domains: domains.size,
+          updatedISO: updated.toISOString(),
+        };
+      }
+
+      const storedStats = storage.read(STORAGE_KEYS.stats);
+      updateStatsUI(storedStats || {});
+      const storedNav = storage.read(STORAGE_KEYS.nav) || [];
+      renderNav(storedNav);
+
+      let probeHistory = storage.read(STORAGE_KEYS.probes) || [];
+      renderProbeHistory(probeHistory);
+      if (probeHistory.length) {
+        const latest = probeHistory[0];
+        setConnectivityResultMessage(
+          latest.summary,
+          latest.ok ? "success" : "error"
+        );
+      } else {
+        setConnectivityResultMessage("The probe hasn’t been run yet.", null);
+      }
+
+      const storedReadme = storage.read(STORAGE_KEYS.readmeHtml);
+      let lastReadmeHtml = "";
+      if (storedReadme && typeof storedReadme.html === "string") {
+        lastReadmeHtml = storedReadme.html;
+        content.innerHTML = lastReadmeHtml;
+        content.hidden = false;
+        content.setAttribute("aria-busy", "false");
+        status.hidden = true;
+        if (readmeShell) {
+          readmeShell.setAttribute("aria-busy", "false");
+        }
+      }
+
+      const storedDocs = storage.read(STORAGE_KEYS.docs) || {};
+      const docCache = new Map(
+        Object.entries(storedDocs).map(([file, payload]) => [file, payload])
+      );
+
+      function persistDocCache() {
+        storage.write(STORAGE_KEYS.docs, Object.fromEntries(docCache));
+      }
+
+      function resetDocCache() {
+        docCache.clear();
+        storage.remove(STORAGE_KEYS.docs);
+      }
+
+      function clearPersistentState() {
+        storage.remove(STORAGE_KEYS.stats);
+        storage.remove(STORAGE_KEYS.nav);
+        storage.remove(STORAGE_KEYS.probes);
+        storage.remove(STORAGE_KEYS.readmeHtml);
+        resetDocCache();
+        lastReadmeHtml = "";
+        updateStatsUI({});
+        renderNav([]);
+        probeHistory = [];
+        renderProbeHistory(probeHistory);
+        setConnectivityResultMessage("The probe hasn’t been run yet.", null);
+        if (activeProbeAbort) {
+          activeProbeAbort.abort();
+          activeProbeAbort = null;
+        }
+        if (connectivityButton) {
+          connectivityButton.disabled = false;
+          connectivityButton.setAttribute("aria-busy", "false");
+        }
+        if (repoPreview) {
+          repoPreview.textContent = "Select a document to load a preview.";
+          repoPreview.setAttribute("aria-busy", "false");
+        }
+        setRepoStatus("No document loaded yet.");
+        activeDocRequest = null;
+        content.innerHTML = "";
+        content.hidden = true;
+        content.setAttribute("aria-busy", "true");
+        if (readmeShell) {
+          readmeShell.setAttribute("aria-busy", "true");
+        }
+      }
+
+      function recordProbe(entry) {
+        probeHistory.unshift(entry);
+        if (probeHistory.length > PROBE_HISTORY_LIMIT) {
+          probeHistory = probeHistory.slice(0, PROBE_HISTORY_LIMIT);
+        }
+        storage.write(STORAGE_KEYS.probes, probeHistory);
+        renderProbeHistory(probeHistory);
+      }
+
+      async function loadReadme() {
+        status.hidden = false;
+        status.textContent = "Loading Awesome PocketBase…";
+        if (readmeShell) {
+          readmeShell.setAttribute("aria-busy", "true");
+        }
+        content.setAttribute("aria-busy", "true");
+        if (!lastReadmeHtml) {
+          content.hidden = true;
+        }
+        try {
+          const response = await fetch("../README.md", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`Unable to load README (status ${response.status})`);
+          }
+          const lastModified = response.headers.get("last-modified");
+          const markdown = await response.text();
+          const { html, headings } = renderMarkdown(markdown);
+          const stats = deriveReadmeStats(markdown, lastModified);
+          updateStatsUI(stats);
+          storage.write(STORAGE_KEYS.stats, stats);
+          const navItems = headings
+            .filter((heading) => heading.level === 2)
+            .map(({ id, text }) => ({ id, text }));
+          renderNav(navItems);
+          storage.write(STORAGE_KEYS.nav, navItems);
+          content.innerHTML = html;
+          content.hidden = false;
+          lastReadmeHtml = html;
+          storage.write(STORAGE_KEYS.readmeHtml, {
+            html,
+            savedAt: new Date().toISOString(),
+          });
+          status.hidden = true;
+        } catch (error) {
+          const fallbackMessage = `Failed to load content: ${error.message}`;
+          if (lastReadmeHtml) {
+            content.hidden = false;
+            content.innerHTML = lastReadmeHtml;
+            status.textContent = `${fallbackMessage} Showing cached README.`;
+          } else {
+            content.hidden = true;
+            status.textContent = fallbackMessage;
+          }
+        } finally {
+          if (readmeShell) {
+            readmeShell.setAttribute("aria-busy", "false");
+          }
+          content.setAttribute("aria-busy", "false");
+        }
+      }
+
+      function renderSnippet(file, text) {
+        const lines = text.split(/\r?\n/).slice(0, 40);
+        if (!lines.length) {
+          return `<strong>${escapeHtml(file)}</strong>\n<em>No content</em>`;
+        }
+        const snippet = lines
+          .map(
+            (line, index) =>
+              `<span class="line"><span class="line-number">${String(index + 1).padStart(3, " ")}</span>${escapeHtml(
+                line
+              )}</span>`
+          )
+          .join("\n");
+        return `<strong>${escapeHtml(file)}</strong>\n${snippet}`;
+      }
+
+      let activeDocRequest = null;
+
+      async function loadDocument(button) {
+        repoButtons.forEach((btn) => btn.classList.toggle("active", btn === button));
+        const file = button.dataset.file;
+        const cached = docCache.get(file);
+        const requestToken = Symbol(file);
+        activeDocRequest = requestToken;
+        repoPreview.setAttribute("aria-busy", "true");
+
+        if (cached) {
+          repoPreview.innerHTML = renderSnippet(file, cached.text);
+          const cachedAt = cached.savedAt ? new Date(cached.savedAt) : null;
+          const hasValidCachedAt = cachedAt && !Number.isNaN(cachedAt.getTime());
+          const cachedMessage = hasValidCachedAt
+            ? `Showing cached ${file} from ${formatTimestamp(cachedAt)} while checking for updates…`
+            : `Showing cached ${file} while checking for updates…`;
+          setRepoStatus(cachedMessage);
+        } else {
+          repoPreview.textContent = `Loading ${file} …`;
+          setRepoStatus(`Fetching the latest ${file}…`);
+        }
+
+        try {
+          const response = await fetch(`../${file}`, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(`Unable to load ${file} (status ${response.status})`);
+          }
+          const text = await response.text();
+          const savedAt = new Date().toISOString();
+          docCache.set(file, { text, savedAt });
+          persistDocCache();
+          if (activeDocRequest === requestToken) {
+            repoPreview.innerHTML = renderSnippet(file, text);
+            setRepoStatus(
+              `Updated ${file} at ${formatTimestamp(new Date(savedAt))}.`,
+              "success"
+            );
+          }
+        } catch (error) {
+          if (activeDocRequest !== requestToken) {
+            return;
+          }
+          if (cached) {
+            const cachedAt = cached.savedAt ? new Date(cached.savedAt) : null;
+            const hasValidCachedAt = cachedAt && !Number.isNaN(cachedAt.getTime());
+            const cachedDescriptor = hasValidCachedAt
+              ? formatTimestamp(cachedAt)
+              : "an earlier session";
+            setRepoStatus(
+              `Failed to refresh ${file}: ${error.message}. Showing cached copy from ${cachedDescriptor}.`,
+              "error"
+            );
+          } else {
+            repoPreview.textContent = `Failed to load ${file}: ${error.message}`;
+            setRepoStatus(`Unable to fetch ${file}.`, "error");
+          }
+        } finally {
+          if (activeDocRequest === requestToken) {
+            repoPreview.setAttribute("aria-busy", "false");
+            activeDocRequest = null;
+          }
+        }
+      }
+
+      repoButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          void loadDocument(button);
+        });
+      });
+
+      if (repoButtons[0]) {
+        void loadDocument(repoButtons[0]);
+      }
+
+      let activeProbeAbort = null;
+
+      async function runConnectivityProbe() {
+        if (activeProbeAbort) {
+          activeProbeAbort.abort();
+        }
+        connectivityButton.disabled = true;
+        connectivityButton.setAttribute("aria-busy", "true");
+        setConnectivityResultMessage(
+          `Attempting to contact ${PROBE_URL} …`,
+          "pending"
+        );
+        const startTime = performance.now();
+        const controller = new AbortController();
+        activeProbeAbort = controller;
+        const timeoutId = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+        try {
+          const response = await fetch(PROBE_URL, {
+            method: "GET",
+            mode: "cors",
+            signal: controller.signal,
+          });
+          const elapsed = Math.round(performance.now() - startTime);
+          const statusLine = `HTTP ${response.status} ${response.statusText || ""}`.trim();
+          const summary = `${statusLine} in ${elapsed} ms`;
+          const entry = {
+            timestamp: new Date().toISOString(),
+            ok: response.ok,
+            latency: elapsed,
+            summary,
+          };
+          recordProbe(entry);
+          setConnectivityResultMessage(
+            `Response after ${elapsed} ms: ${statusLine}`,
+            response.ok ? "success" : "error"
+          );
+        } catch (error) {
+          const elapsed = Math.round(performance.now() - startTime);
+          const aborted = error.name === "AbortError";
+          if (aborted && activeProbeAbort !== controller) {
+            return;
+          }
+          const message = aborted ? "Request timed out" : error.message;
+          const summary = `${message} after ${elapsed} ms`;
+          const entry = {
+            timestamp: new Date().toISOString(),
+            ok: false,
+            latency: elapsed,
+            summary,
+          };
+          recordProbe(entry);
+          setConnectivityResultMessage(
+            `Request failed after ${elapsed} ms: ${message}`,
+            "error"
+          );
+        } finally {
+          clearTimeout(timeoutId);
+          if (activeProbeAbort === controller) {
+            activeProbeAbort = null;
+            connectivityButton.disabled = false;
+            connectivityButton.setAttribute("aria-busy", "false");
+          }
+        }
+      }
+
+      connectivityButton.addEventListener("click", () => runConnectivityProbe());
+
+      refreshButton.addEventListener("click", () => {
+        status.hidden = false;
+        status.textContent = "Refreshing demo data…";
+        loadReadme();
+        resetDocCache();
+        if (repoButtons[0]) {
+          setRepoStatus("Refreshing repository previews…");
+          void loadDocument(repoButtons[0]);
+        }
+        runConnectivityProbe();
+      });
+
+      if (resetButton) {
+        resetButton.addEventListener("click", () => {
+          clearPersistentState();
+          status.hidden = false;
+          status.textContent = "Cleared saved data. Fetching fresh content…";
+          loadReadme();
+          if (repoButtons[0]) {
+            setRepoStatus("Refreshing repository previews…");
+            void loadDocument(repoButtons[0]);
+          }
+          runConnectivityProbe();
+        });
+      }
+
+      if (!probeHistory.length) {
+        runConnectivityProbe();
+      }
+
+      loadReadme();
+    </script>
+  </body>
+</html>

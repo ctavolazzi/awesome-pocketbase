@@ -4,6 +4,10 @@
 
 PocketBase is an open source backend consisting of embedded database (SQLite) with realtime subscriptions, built-in auth management, convenient dashboard UI and simple REST-ish API.
 
+## Local demo viewer
+
+This repository ships with an offline-friendly walkthrough that “shows” the list, connectivity probe, and contributor docs without extra tooling. Launch it by serving the repo locally (for example, `python -m http.server 8000`) and then opening [`docs/viewer.html`](./docs/viewer.html) in your browser. The demo caches the README render, connectivity probe history, and document previews so it remains usable even when the npm tooling cannot reach the public registry. Use the built-in “Refresh all data” and “Clear saved data” controls to rerun the probe, regenerate metrics, or wipe cached previews before presenting the walkthrough.
+
 ## Contents
 
 - [Official Packages](#official-packages)
