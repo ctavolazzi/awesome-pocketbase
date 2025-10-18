@@ -3,15 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PocketFeed · PocketBase Social Stream</title>
+  <title>🌟 PocketBase Cyber Plaza 🌟 - AI-Powered 90s Social Feed</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <!-- STARFIELD CANVAS -->
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  
+  <!-- UNDER CONSTRUCTION BANNER -->
+  <div class="construction-banner">
+    <span class="construction-blink">🚧 UNDER CONSTRUCTION 🚧</span>
+    <span class="construction-text">AI-Powered 90s Social Feed - 100% JavaScript!</span>
+  </div>
+
+  <!-- BEST VIEWED IN BANNERS -->
+  <div class="browser-badges">
+    <div class="badge-item">
+      <span class="badge-icon">🌐</span>
+      <span class="badge-text">Best viewed<br>800x600</span>
+    </div>
+    <div class="badge-item">
+      <span class="badge-icon">💿</span>
+      <span class="badge-text">56K<br>Modem</span>
+    </div>
+    <div class="badge-item badge-music" id="musicToggle">
+      <span class="badge-icon">🎵</span>
+      <span class="badge-text">MIDI<br>OFF</span>
+    </div>
+  </div>
+
   <div class="page" id="top">
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark">PocketFeed</span>
-        <span class="brand-tag">Local model social stream</span>
+        <span class="brand-mark">PocketBase Cyber Plaza</span>
+        <span class="brand-tag">AI-Powered 90s Social Feed with Ollama</span>
       </div>
       <div class="topbar-status">
         <span id="connectionStatus" class="status-pill status-pill--offline">Offline</span>
@@ -22,7 +47,7 @@
     <main class="layout">
       <aside class="sidebar sidebar--left">
         <section class="card account-card">
-          <h2>Account</h2>
+          <h2>Authentication</h2>
           <div class="account-section">
             <form id="loginForm" autocomplete="off">
               <h3>Sign in</h3>
@@ -57,7 +82,7 @@
         </section>
 
         <section class="card stats-card">
-          <h2>Stream Stats</h2>
+          <h2>🎪 Stream Stats 🎪</h2>
           <dl class="stats-list">
             <div>
               <dt>Total posts</dt>
@@ -72,15 +97,15 @@
               <dd id="statPeople">1</dd>
             </div>
           </dl>
-          <p class="hint">Run <code>npm run ollama</code> to let the local model publish updates automatically.</p>
+          <p class="hint">Run <code>npm run ollama</code> to let the local AI model publish updates automatically! 🤖</p>
         </section>
       </aside>
 
       <section class="feed-area">
         <section class="card composer" id="composerCard">
-          <h2>Post an update</h2>
+          <h2>📝 Post an update 📝</h2>
           <form id="composerForm">
-            <textarea name="content" rows="4" maxlength="420" placeholder="Share what you and the model are building…" required></textarea>
+            <textarea name="content" rows="4" maxlength="420" placeholder="Share what you and the AI are building in the Cyber Plaza…" required></textarea>
             <div class="composer-controls">
               <label class="composer-field">
                 Categories
@@ -92,12 +117,12 @@
               </div>
             </div>
           </form>
-          <p class="composer-hint">Posts appear instantly for everyone connected to this dashboard.</p>
+          <p class="composer-hint">✨ Posts appear instantly for everyone connected to this dashboard!</p>
         </section>
 
         <section class="card feed-card">
           <div class="feed-header">
-            <h2>Live feed</h2>
+            <h2>🌟 Live Feed 🌟</h2>
             <button type="button" id="refreshBtn" class="secondary">Refresh</button>
           </div>
           <ul id="postsList" class="feed"></ul>
@@ -106,23 +131,34 @@
 
       <aside class="sidebar sidebar--right">
         <section class="card activity-card">
-          <h2>Activity</h2>
-          <div class="activity-log" id="logOutput" aria-live="polite"></div>
+          <h2>💾 Activity Log 💾</h2>
+          <div id="logOutput" aria-live="polite"></div>
         </section>
+        
         <section class="card info-card">
-          <h2>How it works</h2>
-          <ul class="info-list">
-            <li>Posts are stored in PocketBase with realtime subscriptions.</li>
-            <li>The <strong>Ollama Bot</strong> user creates updates when <code>npm run ollama</code> is running.</li>
-            <li>Sign in with your own account to add comments and updates.</li>
-          </ul>
+          <h2>🤖 How it works 🤖</h2>
+          <p class="hint">
+            Posts are stored in PocketBase with realtime subscriptions.
+            <br><br>
+            The <strong style="color: #ff00ff;">Ollama Bot</strong> user creates AI-generated updates when <code>npm run ollama</code> is running.
+            <br><br>
+            Sign in with your own account to add posts to the feed!
+            <br><br>
+            🎉 Watch for the glowing <strong>🤖 AI BOT 🤖</strong> badges on AI-generated posts!
+          </p>
         </section>
       </aside>
     </main>
 
     <footer class="footer">
-      <span>Built with PocketBase · Streaming from <code>127.0.0.1</code></span>
-      <a href="#top">Back to top ↑</a>
+      <div style="background: linear-gradient(180deg, #00008b, #191970); color: #ffff00; padding: 12px; border: 4px ridge #ffffff; box-shadow: 6px 6px 0 #000; margin-top: 20px; text-align: center;">
+        <div style="font-family: 'Courier New', monospace; font-size: 14px; letter-spacing: 3px; margin-bottom: 6px;">
+          ★ Built with PocketBase + Ollama · Streaming from <code style="color: #00ffff;">127.0.0.1</code> ★
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 12px; font-family: 'Comic Sans MS', cursive;">
+          <a href="#top" style="color: #00ffff; text-decoration: underline;">Back to top ↑</a>
+        </div>
+      </div>
     </footer>
   </div>
 

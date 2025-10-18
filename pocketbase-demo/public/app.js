@@ -16,6 +16,7 @@ const refreshBtn = document.getElementById('refreshBtn');
 const logOutput = document.getElementById('logOutput');
 const statPosts = document.getElementById('statPosts');
 const statAiPosts = document.getElementById('statAiPosts');
+const musicToggle = document.getElementById('musicToggle');
 
 const feedState = new Map();
 const MAX_LOG_LINES = 80;
@@ -74,20 +75,16 @@ async function loadCategories() {
       option.textContent = category.label;
       categorySelect.append(option);
     });
+    appendLog('✅ Loaded categories');
   } catch (error) {
-    appendLog(`Failed to load categories: ${error?.message || error}`);
+    appendLog(`❌ Failed to load categories: ${error?.message || error}`);
   }
 }
 
-function avatarForUser(user) {
-  const name = user?.displayName || user?.email || 'User';
-  const initials = name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-  return initials || 'U';
+function stripHtml(input) {
+  const temp = document.createElement('div');
+  temp.innerHTML = input || '';
+  return temp.textContent || temp.innerText || '';
 }
 
 function formatRelativeTime(isoString) {
@@ -101,92 +98,64 @@ function formatRelativeTime(isoString) {
   return then.toLocaleDateString();
 }
 
-function stripHtml(input) {
-  const temp = document.createElement('div');
-  temp.innerHTML = input || '';
-  return temp.textContent || temp.innerText || '';
-}
-
 function renderFeedItem(record) {
   const author = record.expand?.author;
   const categories = record.expand?.categories || [];
+  
   const li = document.createElement('li');
-  li.className = 'feed-item';
+  li.className = 'post-item';
+  if (record.aiGenerated) {
+    li.classList.add('ai-post');
+  }
   li.dataset.id = record.id;
 
-  const avatar = document.createElement('div');
-  avatar.className = 'feed-avatar';
-  avatar.textContent = avatarForUser(author);
-
-  const contentWrapper = document.createElement('div');
-  contentWrapper.className = 'feed-content';
-
   const meta = document.createElement('div');
-  meta.className = 'feed-meta';
-  const nameEl = document.createElement('strong');
-  nameEl.textContent = author?.displayName || author?.email || 'Unknown user';
-  meta.append(nameEl);
+  meta.className = 'post-meta';
+  
+  const authorSpan = document.createElement('span');
+  authorSpan.className = 'post-author';
+  authorSpan.textContent = author?.displayName || author?.email || 'Unknown user';
+  meta.append(authorSpan);
 
-  const timeEl = document.createElement('span');
-  timeEl.textContent = formatRelativeTime(record.created);
-  meta.append(timeEl);
+  const timeSpan = document.createElement('span');
+  timeSpan.className = 'post-time';
+  timeSpan.textContent = formatRelativeTime(record.created);
+  meta.append(timeSpan);
 
-  if (record.aiGenerated) {
-    const aiBadge = document.createElement('span');
-    aiBadge.className = 'badge';
-    aiBadge.dataset.type = 'ai';
-    aiBadge.textContent = 'AI generated';
-    meta.append(aiBadge);
+  li.append(meta);
+
+  if (categories.length > 0) {
+    const categoriesDiv = document.createElement('div');
+    categoriesDiv.className = 'post-categories';
+    categories.forEach((cat) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = cat.label;
+      categoriesDiv.append(tag);
+    });
+    li.append(categoriesDiv);
   }
-
-  categories.forEach((category) => {
-    const catBadge = document.createElement('span');
-    catBadge.className = 'badge';
-    catBadge.dataset.type = 'category';
-    catBadge.textContent = category.label;
-    meta.append(catBadge);
-  });
 
   const body = document.createElement('div');
-  body.className = 'feed-body';
+  body.className = 'post-body';
   body.textContent = stripHtml(record.content);
-
-  const actions = document.createElement('div');
-  actions.className = 'feed-actions';
-
-  const likeBtn = document.createElement('button');
-  likeBtn.type = 'button';
-  likeBtn.textContent = 'Appreciate';
-  likeBtn.addEventListener('click', () => {
-    appendLog(`You appreciated ${nameEl.textContent}'s post.`);
-  });
-  actions.append(likeBtn);
+  li.append(body);
 
   if (pb.authStore.isValid && pb.authStore.model?.id === record.author) {
+    const actions = document.createElement('div');
+    actions.className = 'post-actions';
+
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
+    deleteBtn.className = 'secondary';
     deleteBtn.textContent = 'Delete';
-    deleteBtn.addEventListener('click', () => handleDelete(record.id));
+    deleteBtn.addEventListener('click', () => handleDeletePost(record.id));
+
     actions.append(deleteBtn);
+    li.append(actions);
   }
 
-  contentWrapper.append(meta, body, actions);
-  li.append(avatar, contentWrapper);
   return li;
-}
-
-function renderFeed() {
-  postsListEl.innerHTML = '';
-  const sorted = Array.from(feedState.values()).sort((a, b) => new Date(b.created) - new Date(a.created));
-  sorted.forEach((record) => {
-    const item = renderFeedItem(record);
-    postsListEl.append(item);
-  });
-  updateStats();
-}
-
-async function fetchPostWithExpand(id) {
-  return pb.collection('posts').getOne(id, { expand: 'author,categories' });
 }
 
 async function loadPosts() {
@@ -196,86 +165,93 @@ async function loadPosts() {
       expand: 'author,categories',
     });
 
+    postsListEl.innerHTML = '';
     feedState.clear();
-    list.items.forEach((item) => feedState.set(item.id, item));
 
-    renderFeed();
+    list.items.forEach((post) => {
+      feedState.set(post.id, post);
+      postsListEl.append(renderFeedItem(post));
+    });
+
+    updateStats();
+    appendLog(`✅ Loaded ${list.items.length} posts`);
     setConnectionStatus(true);
-    appendLog(`Loaded ${list.items.length} posts.`);
   } catch (error) {
+    appendLog(`❌ Failed to load posts: ${error?.message || error}`);
     setConnectionStatus(false);
-    appendLog(`Failed to load posts: ${error?.message || error}`);
   }
 }
 
-function handleCharCount() {
-  const current = composerTextarea.value.length;
-  charCountEl.textContent = `${current} / 420`;
-}
+async function handleDeletePost(id) {
+  if (!window.confirm('Delete this post?')) return;
 
-function createTitleFromBody(body) {
-  const plain = body.replace(/\s+/g, ' ').trim();
-  if (!plain) {
-    return 'Untitled post';
+  try {
+    await pb.collection('posts').delete(id, { requestKey: null });
+    feedState.delete(id);
+    const li = postsListEl.querySelector(`[data-id="${id}"]`);
+    if (li) li.remove();
+    updateStats();
+    appendLog(`🗑️ Deleted post ${id}`);
+  } catch (error) {
+    appendLog(`❌ Delete failed: ${error?.message || error}`);
   }
-  const sentenceMatch = plain.match(/[^.!?]+[.!?]/);
-  const sentence = sentenceMatch ? sentenceMatch[0] : plain;
-  return sentence.length > 60 ? `${sentence.slice(0, 57)}…` : sentence;
 }
 
-function slugify(input) {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '')
-    || `post-${Date.now().toString(36)}`;
-}
+// CHARACTER COUNTER
+composerTextarea?.addEventListener('input', () => {
+  const length = composerTextarea.value.length;
+  charCountEl.textContent = `${length} / 420`;
+  if (length > 380) {
+    charCountEl.style.color = '#ff0000';
+    charCountEl.style.fontWeight = 'bold';
+  } else {
+    charCountEl.style.color = '#800080';
+    charCountEl.style.fontWeight = 'normal';
+  }
+});
 
-composerForm.addEventListener('submit', async (event) => {
+// COMPOSER FORM
+composerForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!pb.authStore.isValid) {
-    appendLog('Sign in to publish posts.');
+    appendLog('⚠️ Sign in to publish posts');
     return;
   }
 
   const content = composerTextarea.value.trim();
+  const categories = Array.from(categorySelect.selectedOptions).map(opt => opt.value);
+
   if (!content) {
-    appendLog('Add some content before posting.');
+    appendLog('⚠️ Post content cannot be empty');
     return;
   }
 
-  const categories = Array.from(categorySelect.selectedOptions).map((option) => option.value);
-  const title = createTitleFromBody(content);
-  const slug = `${slugify(title)}-${Date.now().toString(36)}`;
-
   try {
-    await pb.collection('posts').create(
-      {
-        title,
-        slug,
-        content,
-        status: 'published',
-        categories,
-        author: pb.authStore.model.id,
-        featured: false,
-        aiGenerated: false,
-      },
-      { requestKey: null },
-    );
+    const payload = {
+      title: content.slice(0, 50),
+      slug: `post-${Date.now()}`,
+      content: `<p>${content}</p>`,
+      status: 'published',
+      categories,
+      author: pb.authStore.model.id,
+      featured: false,
+      aiGenerated: false,
+    };
 
-    composerTextarea.value = '';
-    handleCharCount();
-    appendLog('Post published.');
+    await pb.collection('posts').create(payload, { requestKey: null });
+    appendLog('✨ Post published!');
+    composerForm.reset();
+    charCountEl.textContent = '0 / 420';
+    await loadPosts();
   } catch (error) {
-    appendLog(`Publish failed: ${error?.message || error}`);
+    appendLog(`❌ Publish failed: ${error?.message || error}`);
   }
 });
 
-composerTextarea.addEventListener('input', handleCharCount);
-handleCharCount();
-
-registerForm.addEventListener('submit', async (event) => {
+// REGISTER FORM
+registerForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
+
   const formData = new FormData(registerForm);
   const email = formData.get('email').trim();
   const password = formData.get('password');
@@ -289,17 +265,19 @@ registerForm.addEventListener('submit', async (event) => {
       displayName,
     });
 
-    appendLog(`Registered ${email}`);
+    appendLog(`✅ Registered ${email}`);
     await pb.collection('users').authWithPassword(email, password);
-    appendLog(`Signed in as ${email}`);
+    appendLog(`✅ Signed in as ${email}`);
     setAuthStatus();
+    await loadPosts();
     registerForm.reset();
   } catch (error) {
-    appendLog(`Registration failed: ${error?.message || error}`);
+    appendLog(`❌ Registration failed: ${error?.message || error}`);
   }
 });
 
-loginForm.addEventListener('submit', async (event) => {
+// LOGIN FORM
+loginForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(loginForm);
   const email = formData.get('email').trim();
@@ -307,57 +285,58 @@ loginForm.addEventListener('submit', async (event) => {
 
   try {
     await pb.collection('users').authWithPassword(email, password);
-    appendLog(`Signed in as ${email}`);
+    appendLog(`✅ Signed in as ${email}`);
     setAuthStatus();
+    await loadPosts();
   } catch (error) {
-    appendLog(`Sign in failed: ${error?.message || error}`);
+    appendLog(`❌ Sign in failed: ${error?.message || error}`);
   }
 });
 
-logoutBtn.addEventListener('click', () => {
+// LOGOUT
+logoutBtn?.addEventListener('click', () => {
   pb.authStore.clear();
   setAuthStatus();
-  appendLog('Signed out.');
+  appendLog('👋 Signed out');
+  loadPosts();
 });
 
-refreshBtn.addEventListener('click', loadPosts);
+// REFRESH
+refreshBtn?.addEventListener('click', () => {
+  appendLog('🔄 Refreshing feed...');
+  loadPosts();
+});
 
-async function handleDelete(id) {
-  const confirmed = window.confirm('Delete this post?');
-  if (!confirmed) return;
-
-  try {
-    await pb.collection('posts').delete(id, { requestKey: null });
-    appendLog(`Deleted post ${id}`);
-  } catch (error) {
-    appendLog(`Delete failed: ${error?.message || error}`);
-  }
-}
-
+// REALTIME SUBSCRIPTIONS
 async function subscribeToRealtime() {
   try {
     await pb.collection('posts').subscribe('*', async (event) => {
-      if (event.action === 'delete') {
-        feedState.delete(event.record.id);
-        renderFeed();
-        appendLog(`Post ${event.record.id} removed.`);
-        return;
-      }
-
-      try {
-        const fullRecord = await fetchPostWithExpand(event.record.id);
+      if (event.action === 'create') {
+        const fullRecord = await pb.collection('posts').getOne(event.record.id, {
+          expand: 'author,categories',
+        });
         feedState.set(fullRecord.id, fullRecord);
-        renderFeed();
-        const verb = event.action === 'create' ? 'New post' : 'Post updated';
-        appendLog(`${verb}: ${fullRecord.title}`);
-      } catch (fetchError) {
-        appendLog(`Realtime fetch failed: ${fetchError?.message || fetchError}`);
+        const newItem = renderFeedItem(fullRecord);
+        postsListEl.prepend(newItem);
+        updateStats();
+        
+        if (fullRecord.aiGenerated) {
+          appendLog(`🤖 AI Bot posted: "${fullRecord.title}"`);
+        } else {
+          appendLog(`✨ New post: "${fullRecord.title}"`);
+        }
+      } else if (event.action === 'delete') {
+        feedState.delete(event.record.id);
+        const li = postsListEl.querySelector(`[data-id="${event.record.id}"]`);
+        if (li) li.remove();
+        updateStats();
+        appendLog(`🗑️ Post deleted`);
       }
     });
     setConnectionStatus(true);
   } catch (error) {
+    appendLog(`❌ Realtime subscription failed: ${error?.message || error}`);
     setConnectionStatus(false);
-    appendLog(`Realtime subscription failed: ${error?.message || error}`);
   }
 }
 
@@ -366,11 +345,82 @@ window.addEventListener('beforeunload', () => {
   pb.realtime.disconnect();
 });
 
+// 🌟 STARFIELD ANIMATION 🌟
+const canvas = document.getElementById('starfield');
+if (canvas) {
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const stars = [];
+  const starCount = 200;
+
+  for (let i = 0; i < starCount; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      radius: Math.random() * 2,
+      speed: Math.random() * 0.5 + 0.1,
+      opacity: Math.random()
+    });
+  }
+
+  function animateStars() {
+    ctx.fillStyle = 'rgba(0, 128, 128, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    stars.forEach(star => {
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+      ctx.fill();
+
+      star.y += star.speed;
+      star.opacity = Math.sin(Date.now() * 0.001 + star.x) * 0.5 + 0.5;
+
+      if (star.y > canvas.height) {
+        star.y = 0;
+        star.x = Math.random() * canvas.width;
+      }
+    });
+
+    requestAnimationFrame(animateStars);
+  }
+
+  animateStars();
+
+  window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  });
+}
+
+// 🎵 MIDI MUSIC TOGGLE 🎵
+if (musicToggle) {
+  let musicEnabled = false;
+  musicToggle.addEventListener('click', () => {
+    musicEnabled = !musicEnabled;
+    const badgeText = musicToggle.querySelector('.badge-text');
+    if (badgeText) {
+      badgeText.innerHTML = musicEnabled ? 'MIDI<br>ON' : 'MIDI<br>OFF';
+    }
+    if (musicEnabled) {
+      appendLog('🎵 MIDI music enabled! (Just kidding, no actual MIDI file loaded)');
+    } else {
+      appendLog('🔇 MIDI music disabled');
+    }
+  });
+}
+
+// INITIALIZE
 (async function init() {
   pb.authStore.onChange(() => setAuthStatus());
   setAuthStatus();
-
   await loadCategories();
   await loadPosts();
   await subscribeToRealtime();
+  
+  appendLog('🎉 Welcome to the PocketBase Cyber Plaza!');
+  appendLog('🤖 AI-powered 90s social feed is ONLINE!');
+  appendLog('💡 Run "npm run ollama" to start AI post generation');
 })();
