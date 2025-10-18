@@ -216,11 +216,6 @@ async function ensureSchema() {
         required: true,
       },
       {
-        name: 'aiGenerated',
-        type: 'bool',
-        required: false,
-      },
-      {
         name: 'status',
         type: 'select',
         required: true,
@@ -291,42 +286,15 @@ async function ensureSchema() {
     deleteRule: '@request.auth.id != ""',
   });
 
-  const siteStatsCollection = await ensureCollection({
-    name: 'site_stats',
-    type: 'base',
-    schema: [
-      {
-        name: 'visitor_count',
-        type: 'number',
-        required: true,
-        options: {
-          min: null,
-          max: null,
-        },
-      },
-      {
-        name: 'last_visit',
-        type: 'date',
-        required: false,
-      },
-    ],
-    listRule: '',
-    viewRule: '',
-    createRule: '',
-    updateRule: '',
-    deleteRule: '@request.auth.id != ""',
-  });
-
   return {
     usersCollection,
     categoriesCollection,
     postsCollection,
     commentsCollection,
-    siteStatsCollection,
   };
 }
 
-async function seedData({ usersCollection, categoriesCollection, postsCollection, siteStatsCollection }) {
+async function seedData({ usersCollection, categoriesCollection, postsCollection }) {
   logStep('Seeding demo data');
 
   const [demoUser] = await Promise.all([
@@ -344,13 +312,6 @@ async function seedData({ usersCollection, categoriesCollection, postsCollection
       displayName: 'Content Editor',
       bio: 'Curates posts and moderates comments.',
     }, 'email = "editor@pocketbase.dev"'),
-    seedRecord('users', {
-      email: 'ollama@pocketbase.dev',
-      password: 'OllamaPoster42',
-      passwordConfirm: 'OllamaPoster42',
-      displayName: 'Ollama Bot',
-      bio: 'Local model that shares fresh development updates.',
-    }, 'email = "ollama@pocketbase.dev"'),
   ]);
 
   const categories = await Promise.all([
@@ -380,41 +341,27 @@ async function seedData({ usersCollection, categoriesCollection, postsCollection
     : await pb.collection('users').getFirstListItem('email = "demo@pocketbase.dev"');
 
   const editorRecord = await pb.collection('users').getFirstListItem('email = "editor@pocketbase.dev"');
-  const ollamaBot = await pb.collection('users').getFirstListItem('email = "ollama@pocketbase.dev"');
 
   const firstPost = await seedRecord('posts', {
     title: 'Welcome to the PocketBase Demo',
     slug: 'welcome-to-the-pocketbase-demo',
     content:
-      'This walkthrough highlights CRUD operations, realtime subscriptions, and auth flows built on PocketBase.',
+      '<p>This walkthrough highlights CRUD operations, realtime subscriptions, and auth flows built on PocketBase.</p>',
     status: 'published',
     categories: categoryIds,
     author: demoUserRecord.id,
     featured: true,
-    aiGenerated: false,
   }, 'slug = "welcome-to-the-pocketbase-demo"');
 
   await seedRecord('posts', {
     title: 'Moderating Community Posts',
     slug: 'moderating-community-posts',
     content:
-      'Editors can review submissions, update content inline, and manage categories without leaving the dashboard.',
+      '<p>Editors can review submissions, update content inline, and manage categories without leaving the dashboard.</p>',
     status: 'published',
     categories: categoryIds.slice(1),
     author: editorRecord.id,
-    aiGenerated: false,
   }, 'slug = "moderating-community-posts"');
-
-  await seedRecord('posts', {
-    title: 'Ollama Kicks Off the Feed',
-    slug: 'ollama-kicks-off-the-feed',
-    content:
-      'Hello from the Ollama Bot! I am warming up the model so you can see fresh posts drop into the timeline as we iterate.',
-    status: 'published',
-    categories: categoryIds.slice(0, 1),
-    author: ollamaBot.id,
-    aiGenerated: true,
-  }, 'slug = "ollama-kicks-off-the-feed"');
 
   if (firstPost) {
     await seedRecord('comments', {
@@ -423,12 +370,6 @@ async function seedData({ usersCollection, categoriesCollection, postsCollection
       author: editorRecord.id,
     }, null);
   }
-
-  // Initialize site stats with starting visitor count (stored as 1, displays as 0)
-  await seedRecord('site_stats', {
-    visitor_count: 1,
-    last_visit: new Date().toISOString(),
-  }, 'visitor_count >= 1');
 }
 
 async function setup() {

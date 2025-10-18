@@ -3,26 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PocketBase Demo Dashboard</title>
+  <title>PocketFeed · PocketBase Social Stream</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="hero">
-      <h1>PocketBase Demo Dashboard</h1>
-      <p class="subtitle">Interact with CRUD, realtime, and authentication features from your browser.</p>
-      <div class="status">
-        <span id="authStatus">Not signed in</span>
-        <span id="connectionStatus" class="badge">offline</span>
+  <div class="page" id="top">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">PocketFeed</span>
+        <span class="brand-tag">Local model social stream</span>
+      </div>
+      <div class="topbar-status">
+        <span id="connectionStatus" class="status-pill status-pill--offline">Offline</span>
+        <span id="authStatus" class="auth-indicator">Not signed in</span>
       </div>
     </header>
 
     <main class="layout">
-      <section class="panel auth-panel">
-        <h2>Authentication</h2>
-        <div class="card">
-          <h3>Create account</h3>
-          <form id="registerForm" autocomplete="off">
+      <aside class="sidebar sidebar--left">
+        <section class="card account-card">
+          <h2>Account</h2>
+          <div class="account-section">
+            <form id="loginForm" autocomplete="off">
+              <h3>Sign in</h3>
+              <label>
+                Email
+                <input type="email" name="email" value="demo@pocketbase.dev" required />
+              </label>
+              <label>
+                Password
+                <input type="password" name="password" value="PocketBaseDemo42" required />
+              </label>
+              <button type="submit" class="primary">Sign in</button>
+            </form>
+            <button id="logoutBtn" type="button" class="secondary" disabled>Sign out</button>
+          </div>
+          <div class="divider"><span>or create an account</span></div>
+          <form id="registerForm" autocomplete="off" class="register-form">
             <label>
               Email
               <input type="email" name="email" required />
@@ -35,84 +52,78 @@
               Display name
               <input type="text" name="displayName" maxlength="120" />
             </label>
-            <button type="submit">Register &amp; sign in</button>
+            <button type="submit" class="secondary">Register &amp; join feed</button>
           </form>
-        </div>
+        </section>
 
-        <div class="card">
-          <h3>Sign in</h3>
-          <form id="loginForm" autocomplete="off">
-            <label>
-              Email
-              <input type="email" name="email" value="demo@pocketbase.dev" required />
-            </label>
-            <label>
-              Password
-              <input type="password" name="password" value="PocketBaseDemo42" required />
-            </label>
-            <button type="submit">Sign in</button>
-          </form>
-          <button id="logoutBtn" type="button" class="secondary" disabled>Sign out</button>
-        </div>
-      </section>
-
-      <section class="panel post-panel">
-        <h2>Posts</h2>
-        <div class="card">
-          <h3 id="formTitle">Create post</h3>
-          <form id="postForm">
-            <input type="hidden" name="id" />
-            <label>
-              Title
-              <input type="text" name="title" required minlength="3" maxlength="140" />
-            </label>
-            <label>
-              Slug
-              <input type="text" name="slug" required pattern="^[a-z0-9-]+$" />
-            </label>
-            <label>
-              Content
-              <textarea name="content" rows="4" required></textarea>
-            </label>
-            <label>
-              Status
-              <select name="status">
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
-            </label>
-            <label>
-              Categories
-              <select name="categories" id="categorySelect" multiple></select>
-            </label>
-            <label class="checkbox">
-              <input type="checkbox" name="featured" />
-              Featured
-            </label>
-            <button type="submit">Save post</button>
-            <button type="button" id="resetFormBtn" class="secondary">Reset</button>
-          </form>
-        </div>
-
-        <div class="card post-list">
-          <div class="list-header">
-            <h3>Live posts</h3>
-            <div class="actions">
-              <button type="button" id="refreshBtn" class="secondary">Refresh</button>
+        <section class="card stats-card">
+          <h2>Stream Stats</h2>
+          <dl class="stats-list">
+            <div>
+              <dt>Total posts</dt>
+              <dd id="statPosts">—</dd>
             </div>
+            <div>
+              <dt>AI generated</dt>
+              <dd id="statAiPosts">—</dd>
+            </div>
+            <div>
+              <dt>People online</dt>
+              <dd id="statPeople">1</dd>
+            </div>
+          </dl>
+          <p class="hint">Run <code>npm run ollama</code> to let the local model publish updates automatically.</p>
+        </section>
+      </aside>
+
+      <section class="feed-area">
+        <section class="card composer" id="composerCard">
+          <h2>Post an update</h2>
+          <form id="composerForm">
+            <textarea name="content" rows="4" maxlength="420" placeholder="Share what you and the model are building…" required></textarea>
+            <div class="composer-controls">
+              <label class="composer-field">
+                Categories
+                <select name="categories" id="categorySelect" multiple></select>
+              </label>
+              <div class="composer-actions">
+                <span id="charCount">0 / 420</span>
+                <button type="submit" class="primary">Publish</button>
+              </div>
+            </div>
+          </form>
+          <p class="composer-hint">Posts appear instantly for everyone connected to this dashboard.</p>
+        </section>
+
+        <section class="card feed-card">
+          <div class="feed-header">
+            <h2>Live feed</h2>
+            <button type="button" id="refreshBtn" class="secondary">Refresh</button>
           </div>
-          <ul id="postsList"></ul>
-        </div>
+          <ul id="postsList" class="feed"></ul>
+        </section>
       </section>
 
-      <section class="panel log-panel">
-        <h2>Activity log</h2>
-        <div class="card">
-          <pre id="logOutput" aria-live="polite"></pre>
-        </div>
-      </section>
+      <aside class="sidebar sidebar--right">
+        <section class="card activity-card">
+          <h2>Activity</h2>
+          <div class="activity-log" id="logOutput" aria-live="polite"></div>
+        </section>
+        <section class="card info-card">
+          <h2>How it works</h2>
+          <ul class="info-list">
+            <li>Posts are stored in PocketBase with realtime subscriptions.</li>
+            <li>The <strong>Ollama Bot</strong> user creates updates when <code>npm run ollama</code> is running.</li>
+            <li>Sign in with your own account to add comments and updates.</li>
+          </ul>
+        </section>
+      </aside>
     </main>
+
+    <footer class="footer">
+      <span>Built with PocketBase · Streaming from <code>127.0.0.1</code></span>
+      <a href="#top">Back to top ↑</a>
+    </footer>
   </div>
 
   <script src="../node_modules/pocketbase/dist/pocketbase.umd.js"></script>

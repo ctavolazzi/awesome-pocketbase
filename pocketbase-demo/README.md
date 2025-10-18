@@ -49,9 +49,9 @@ The setup script (`setup.mjs`) handles these API differences automatically and i
 
 `npm run setup` ensures the following model:
 
-- **users** (auth) – adds `displayName` & `bio` profile fields, requires auth to update/delete `self`.
-- **categories** (base) – public read, authenticated create/update/delete.
-- **posts** (base) – public read, authenticated create, author-restricted update/delete, relations to `users` and `categories`.
+- **users** (auth) – adds `displayName` & `bio` profile fields, requires auth to update/delete `self`. Seeds three accounts: demo, content editor, and `Ollama Bot`.
+- **categories** (base) – public read, authenticated create/update/delete for lightweight topic tagging.
+- **posts** (base) – public read, authenticated create, author-restricted update/delete, relations to `users` and `categories`, plus an `aiGenerated` flag to highlight model-created content.
 - **comments** (base) – public read, authenticated create, author-restricted update/delete, cascades on post deletion.
 
 Sample records include two demo users, three categories, spotlight posts, and a starter comment.
@@ -66,6 +66,7 @@ Each script accepts optional environment overrides for `PB_BASE_URL`, `PB_ADMIN_
 | `npm run crud` | Walks through create, read (filter + pagination), update, delete, and error handling for the `posts` collection. |
 | `npm run realtime` | Signs in as a demo user, subscribes to `posts` and `comments`, triggers lifecycle events, and showcases unsubscribe handling. |
 | `npm run auth` | Registers a new user, demonstrates login, token refresh, profile updates, password reset requests, and logout guards. |
+| `npm run ollama` | Drives the `Ollama Bot` user to generate short-form posts by calling the local Ollama REST API on an interval. |
 | `npm start` | Original read-only example that lists posts via the JS SDK. |
 | `npm run serve` | Convenience wrapper for `./pocketbase serve --http=127.0.0.1:8090`. |
 
@@ -79,9 +80,9 @@ A minimal single-page interface showcases realtime CRUD with visual feedback:
    # or: npx serve public
    ```
 2. Visit `http://127.0.0.1:4173/public/`.
-3. Use the **Authentication** panel to register/sign in. Demo credentials: `demo@pocketbase.dev` / `PocketBaseDemo42`.
-4. Create, edit, and delete posts. Realtime updates automatically refresh the list.
-5. The activity log mirrors websocket events and REST actions for presentations.
+3. Use the **Account** sidebar to register/sign in. Demo credentials: `demo@pocketbase.dev` / `PocketBaseDemo42`.
+4. Publish updates from the composer. Realtime updates automatically refresh the feed.
+5. Run `npm run ollama` in another terminal to let the local model drip fresh content into the feed.
 
 The UI loads the PocketBase SDK directly from `../node_modules/pocketbase/dist/pocketbase.umd.js`, so host the repo root when serving locally.
 
@@ -166,8 +167,7 @@ docker-compose down
 - `script.mjs` – Legacy read script (still available via `npm start`)
 - `setup.mjs` – Collection and seed automation
 - `crud-demo.mjs` / `realtime-demo.mjs` / `auth-demo.mjs` – Scenario scripts
-- `test-all.mjs` – Automated test suite
-- `verify.mjs` – Quick health check
+- `ollama-feed.mjs` – Streams micro-posts from the local Ollama model
 - `public/` – Browser UI (`index.html`, `app.js`, `style.css`)
 - `docker-compose.yml` – Docker deployment configuration
 - `FEATURES.md` – Detailed feature tour and snippets

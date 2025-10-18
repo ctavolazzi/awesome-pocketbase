@@ -4,242 +4,278 @@ const pb = new PocketBase(BASE_URL);
 const authStatusEl = document.getElementById('authStatus');
 const connectionStatusEl = document.getElementById('connectionStatus');
 const postsListEl = document.getElementById('postsList');
-const postForm = document.getElementById('postForm');
-const formTitleEl = document.getElementById('formTitle');
-const resetFormBtn = document.getElementById('resetFormBtn');
-const refreshBtn = document.getElementById('refreshBtn');
+const composerCard = document.getElementById('composerCard');
+const composerForm = document.getElementById('composerForm');
+const composerTextarea = composerForm.querySelector('textarea[name="content"]');
+const charCountEl = document.getElementById('charCount');
+const categorySelect = document.getElementById('categorySelect');
 const registerForm = document.getElementById('registerForm');
 const loginForm = document.getElementById('loginForm');
 const logoutBtn = document.getElementById('logoutBtn');
+const refreshBtn = document.getElementById('refreshBtn');
 const logOutput = document.getElementById('logOutput');
-const categorySelect = document.getElementById('categorySelect');
-const postIdField = postForm.querySelector('input[name="id"]');
+const statPosts = document.getElementById('statPosts');
+const statAiPosts = document.getElementById('statAiPosts');
 
-const state = {
-  editingId: null,
-  categories: [],
-};
+const feedState = new Map();
+const MAX_LOG_LINES = 80;
 
 function appendLog(message) {
-  const timestamp = new Date().toLocaleTimeString();
-  logOutput.textContent = `[${timestamp}] ${message}\n` + logOutput.textContent;
+  const entry = document.createElement('p');
+  entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  logOutput.prepend(entry);
+
+  while (logOutput.children.length > MAX_LOG_LINES) {
+    logOutput.removeChild(logOutput.lastChild);
+  }
+}
+
+function updateStats() {
+  const posts = Array.from(feedState.values());
+  statPosts.textContent = posts.length.toString();
+  const aiCount = posts.filter((post) => post.aiGenerated).length;
+  statAiPosts.textContent = aiCount.toString();
 }
 
 function setAuthStatus() {
   if (pb.authStore.isValid) {
-    authStatusEl.textContent = `Signed in as ${pb.authStore.model.email}`;
+    const name = pb.authStore.model?.displayName || pb.authStore.model?.email;
+    authStatusEl.textContent = `Signed in as ${name}`;
     logoutBtn.disabled = false;
-    postForm.querySelectorAll('input, select, textarea, button').forEach((el) => {
-      el.disabled = false;
-    });
+    setComposerEnabled(true);
   } else {
     authStatusEl.textContent = 'Not signed in';
     logoutBtn.disabled = true;
-    postForm.querySelectorAll('input, select, textarea, button').forEach((el) => {
-      if (el.id !== 'resetFormBtn') {
-        el.disabled = true;
-      }
-    });
+    setComposerEnabled(false);
   }
 }
 
+function setComposerEnabled(enabled) {
+  const elements = composerCard.querySelectorAll('textarea, select, button');
+  elements.forEach((el) => {
+    el.disabled = !enabled;
+  });
+  composerCard.classList.toggle('is-disabled', !enabled);
+}
+
 function setConnectionStatus(connected) {
-  connectionStatusEl.textContent = connected ? 'online' : 'offline';
-  connectionStatusEl.classList.toggle('is-online', connected);
+  connectionStatusEl.textContent = connected ? 'Online' : 'Offline';
+  connectionStatusEl.classList.toggle('status-pill--online', connected);
+  connectionStatusEl.classList.toggle('status-pill--offline', !connected);
 }
 
 async function loadCategories() {
   try {
-    const result = await pb.collection('categories').getList(1, 50, {
-      sort: 'label',
-    });
-
-    state.categories = result.items;
+    const result = await pb.collection('categories').getList(1, 100, { sort: 'label' });
     categorySelect.innerHTML = '';
-
     result.items.forEach((category) => {
       const option = document.createElement('option');
       option.value = category.id;
       option.textContent = category.label;
       categorySelect.append(option);
     });
-
-    appendLog('Loaded categories.');
   } catch (error) {
     appendLog(`Failed to load categories: ${error?.message || error}`);
   }
 }
 
-function createPostCard(post) {
-  const li = document.createElement('li');
-  li.className = 'post-card';
-  li.dataset.id = post.id;
+function avatarForUser(user) {
+  const name = user?.displayName || user?.email || 'User';
+  const initials = name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  return initials || 'U';
+}
 
-  const heading = document.createElement('h4');
-  heading.textContent = post.title;
-  li.append(heading);
+function formatRelativeTime(isoString) {
+  const now = new Date();
+  const then = new Date(isoString);
+  const diff = (now - then) / 1000;
+
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return then.toLocaleDateString();
+}
+
+function stripHtml(input) {
+  const temp = document.createElement('div');
+  temp.innerHTML = input || '';
+  return temp.textContent || temp.innerText || '';
+}
+
+function renderFeedItem(record) {
+  const author = record.expand?.author;
+  const categories = record.expand?.categories || [];
+  const li = document.createElement('li');
+  li.className = 'feed-item';
+  li.dataset.id = record.id;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'feed-avatar';
+  avatar.textContent = avatarForUser(author);
+
+  const contentWrapper = document.createElement('div');
+  contentWrapper.className = 'feed-content';
 
   const meta = document.createElement('div');
-  meta.className = 'post-meta';
-  const statusTag = document.createElement('span');
-  statusTag.className = 'tag';
-  statusTag.textContent = post.status;
-  meta.append(statusTag);
+  meta.className = 'feed-meta';
+  const nameEl = document.createElement('strong');
+  nameEl.textContent = author?.displayName || author?.email || 'Unknown user';
+  meta.append(nameEl);
 
-  if (post.featured) {
-    const featured = document.createElement('span');
-    featured.className = 'tag';
-    featured.textContent = 'featured';
-    meta.append(featured);
+  const timeEl = document.createElement('span');
+  timeEl.textContent = formatRelativeTime(record.created);
+  meta.append(timeEl);
+
+  if (record.aiGenerated) {
+    const aiBadge = document.createElement('span');
+    aiBadge.className = 'badge';
+    aiBadge.dataset.type = 'ai';
+    aiBadge.textContent = 'AI generated';
+    meta.append(aiBadge);
   }
 
-  const authorName = post.expand?.author?.displayName || post.expand?.author?.email || 'Unknown';
-  const author = document.createElement('span');
-  author.textContent = `Author: ${authorName}`;
-  meta.append(author);
+  categories.forEach((category) => {
+    const catBadge = document.createElement('span');
+    catBadge.className = 'badge';
+    catBadge.dataset.type = 'category';
+    catBadge.textContent = category.label;
+    meta.append(catBadge);
+  });
 
-  if (post.expand?.categories?.length) {
-    const categories = document.createElement('span');
-    categories.textContent = post.expand.categories.map((cat) => cat.label).join(', ');
-    meta.append(categories);
-  }
+  const body = document.createElement('div');
+  body.className = 'feed-body';
+  body.textContent = stripHtml(record.content);
 
-  li.append(meta);
+  const actions = document.createElement('div');
+  actions.className = 'feed-actions';
 
-  const excerpt = document.createElement('p');
-  excerpt.innerHTML = post.content;
-  li.append(excerpt);
+  const likeBtn = document.createElement('button');
+  likeBtn.type = 'button';
+  likeBtn.textContent = 'Appreciate';
+  likeBtn.addEventListener('click', () => {
+    appendLog(`You appreciated ${nameEl.textContent}'s post.`);
+  });
+  actions.append(likeBtn);
 
-  if (pb.authStore.isValid) {
-    const actions = document.createElement('div');
-    actions.className = 'actions';
-
-    const editBtn = document.createElement('button');
-    editBtn.type = 'button';
-    editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', () => populateForm(post));
-
+  if (pb.authStore.isValid && pb.authStore.model?.id === record.author) {
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    deleteBtn.className = 'secondary';
     deleteBtn.textContent = 'Delete';
-    deleteBtn.addEventListener('click', () => handleDelete(post.id));
-
-    actions.append(editBtn, deleteBtn);
-    li.append(actions);
+    deleteBtn.addEventListener('click', () => handleDelete(record.id));
+    actions.append(deleteBtn);
   }
 
+  contentWrapper.append(meta, body, actions);
+  li.append(avatar, contentWrapper);
   return li;
+}
+
+function renderFeed() {
+  postsListEl.innerHTML = '';
+  const sorted = Array.from(feedState.values()).sort((a, b) => new Date(b.created) - new Date(a.created));
+  sorted.forEach((record) => {
+    const item = renderFeedItem(record);
+    postsListEl.append(item);
+  });
+  updateStats();
+}
+
+async function fetchPostWithExpand(id) {
+  return pb.collection('posts').getOne(id, { expand: 'author,categories' });
 }
 
 async function loadPosts() {
   try {
-    const list = await pb.collection('posts').getList(1, 20);
-
-    // Manually fetch related data
-    const categoryIds = [...new Set(list.items.flatMap(p => p.categories || []))];
-
-    const categories = categoryIds.length > 0 ? await Promise.all(
-      categoryIds.map(id => pb.collection('categories').getOne(id).catch(() => null))
-    ) : [];
-
-    // Attach expand data manually (skip users - auth collection has restricted access)
-    list.items.forEach(post => {
-      post.expand = {
-        author: { displayName: 'Author', email: 'user@example.com' }, // Placeholder since we can't fetch users
-        categories: (post.categories || []).map(cid => categories.find(c => c?.id === cid)).filter(Boolean)
-      };
+    const list = await pb.collection('posts').getList(1, 50, {
+      sort: '-created',
+      expand: 'author,categories',
     });
 
-    postsListEl.innerHTML = '';
-    list.items.forEach((post) => postsListEl.append(createPostCard(post)));
-    appendLog(`Loaded ${list.items.length} posts.`);
+    feedState.clear();
+    list.items.forEach((item) => feedState.set(item.id, item));
+
+    renderFeed();
     setConnectionStatus(true);
+    appendLog(`Loaded ${list.items.length} posts.`);
   } catch (error) {
-    appendLog(`Failed to load posts: ${error?.message || error}`);
     setConnectionStatus(false);
+    appendLog(`Failed to load posts: ${error?.message || error}`);
   }
 }
 
-function populateForm(post) {
-  state.editingId = post.id;
-  formTitleEl.textContent = 'Edit post';
-  postIdField.value = post.id;
-  postForm.title.value = post.title;
-  postForm.slug.value = post.slug;
-  postForm.content.value = post.content.replace(/<[^>]+>/g, '');
-  postForm.status.value = post.status;
-  Array.from(categorySelect.options).forEach((option) => {
-    option.selected = post.categories?.includes(option.value) || post.expand?.categories?.some((cat) => cat.id === option.value);
-  });
-  postForm.featured.checked = !!post.featured;
-  appendLog(`Editing post ${post.id}`);
+function handleCharCount() {
+  const current = composerTextarea.value.length;
+  charCountEl.textContent = `${current} / 420`;
 }
 
-function resetForm() {
-  state.editingId = null;
-  postForm.reset();
-  formTitleEl.textContent = 'Create post';
-  postIdField.value = '';
-  appendLog('Post form reset.');
-}
-
-async function handleDelete(id) {
-  const confirmed = window.confirm('Delete this post?');
-  if (!confirmed) return;
-
-  try {
-    await pb.collection('posts').delete(id, { requestKey: null });
-    appendLog(`Deleted post ${id}`);
-    await loadPosts();
-  } catch (error) {
-    appendLog(`Delete failed: ${error?.message || error}`);
+function createTitleFromBody(body) {
+  const plain = body.replace(/\s+/g, ' ').trim();
+  if (!plain) {
+    return 'Untitled post';
   }
+  const sentenceMatch = plain.match(/[^.!?]+[.!?]/);
+  const sentence = sentenceMatch ? sentenceMatch[0] : plain;
+  return sentence.length > 60 ? `${sentence.slice(0, 57)}…` : sentence;
 }
 
-postForm.addEventListener('submit', async (event) => {
+function slugify(input) {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+    || `post-${Date.now().toString(36)}`;
+}
+
+composerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!pb.authStore.isValid) {
-    appendLog('Sign in to create or update posts.');
+    appendLog('Sign in to publish posts.');
     return;
   }
 
-  const formData = new FormData(postForm);
-  const payload = {
-    title: formData.get('title').trim(),
-    slug: formData.get('slug').trim(),
-    content: formData.get('content').trim(),
-    status: formData.get('status'),
-    categories: formData.getAll('categories'),
-    featured: formData.get('featured') === 'on',
-  };
-
-  if (!state.editingId) {
-    payload.author = pb.authStore.model.id;
+  const content = composerTextarea.value.trim();
+  if (!content) {
+    appendLog('Add some content before posting.');
+    return;
   }
 
-  try {
-    if (state.editingId) {
-      await pb.collection('posts').update(state.editingId, payload, { requestKey: null });
-      appendLog(`Updated post ${state.editingId}`);
-    } else {
-      await pb.collection('posts').create(payload, { requestKey: null });
-      appendLog('Created new post.');
-    }
+  const categories = Array.from(categorySelect.selectedOptions).map((option) => option.value);
+  const title = createTitleFromBody(content);
+  const slug = `${slugify(title)}-${Date.now().toString(36)}`;
 
-    resetForm();
-    await loadPosts();
+  try {
+    await pb.collection('posts').create(
+      {
+        title,
+        slug,
+        content,
+        status: 'published',
+        categories,
+        author: pb.authStore.model.id,
+        featured: false,
+        aiGenerated: false,
+      },
+      { requestKey: null },
+    );
+
+    composerTextarea.value = '';
+    handleCharCount();
+    appendLog('Post published.');
   } catch (error) {
-    appendLog(`Save failed: ${error?.message || error}`);
+    appendLog(`Publish failed: ${error?.message || error}`);
   }
 });
 
-resetFormBtn.addEventListener('click', resetForm);
-refreshBtn.addEventListener('click', loadPosts);
+composerTextarea.addEventListener('input', handleCharCount);
+handleCharCount();
 
 registerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-
   const formData = new FormData(registerForm);
   const email = formData.get('email').trim();
   const password = formData.get('password');
@@ -257,7 +293,6 @@ registerForm.addEventListener('submit', async (event) => {
     await pb.collection('users').authWithPassword(email, password);
     appendLog(`Signed in as ${email}`);
     setAuthStatus();
-    await loadPosts();
     registerForm.reset();
   } catch (error) {
     appendLog(`Registration failed: ${error?.message || error}`);
@@ -274,7 +309,6 @@ loginForm.addEventListener('submit', async (event) => {
     await pb.collection('users').authWithPassword(email, password);
     appendLog(`Signed in as ${email}`);
     setAuthStatus();
-    await loadPosts();
   } catch (error) {
     appendLog(`Sign in failed: ${error?.message || error}`);
   }
@@ -284,20 +318,46 @@ logoutBtn.addEventListener('click', () => {
   pb.authStore.clear();
   setAuthStatus();
   appendLog('Signed out.');
-  resetForm();
-  loadPosts();
 });
+
+refreshBtn.addEventListener('click', loadPosts);
+
+async function handleDelete(id) {
+  const confirmed = window.confirm('Delete this post?');
+  if (!confirmed) return;
+
+  try {
+    await pb.collection('posts').delete(id, { requestKey: null });
+    appendLog(`Deleted post ${id}`);
+  } catch (error) {
+    appendLog(`Delete failed: ${error?.message || error}`);
+  }
+}
 
 async function subscribeToRealtime() {
   try {
-    await pb.collection('posts').subscribe('*', (event) => {
-      appendLog(`Realtime: ${event.action} ${event.record.title}`);
-      loadPosts();
+    await pb.collection('posts').subscribe('*', async (event) => {
+      if (event.action === 'delete') {
+        feedState.delete(event.record.id);
+        renderFeed();
+        appendLog(`Post ${event.record.id} removed.`);
+        return;
+      }
+
+      try {
+        const fullRecord = await fetchPostWithExpand(event.record.id);
+        feedState.set(fullRecord.id, fullRecord);
+        renderFeed();
+        const verb = event.action === 'create' ? 'New post' : 'Post updated';
+        appendLog(`${verb}: ${fullRecord.title}`);
+      } catch (fetchError) {
+        appendLog(`Realtime fetch failed: ${fetchError?.message || fetchError}`);
+      }
     });
     setConnectionStatus(true);
   } catch (error) {
-    appendLog(`Realtime subscription failed: ${error?.message || error}`);
     setConnectionStatus(false);
+    appendLog(`Realtime subscription failed: ${error?.message || error}`);
   }
 }
 
@@ -309,6 +369,7 @@ window.addEventListener('beforeunload', () => {
 (async function init() {
   pb.authStore.onChange(() => setAuthStatus());
   setAuthStatus();
+
   await loadCategories();
   await loadPosts();
   await subscribeToRealtime();

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PocketBase Demo Dashboard</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="ticker">
+      <marquee scrollamount="8" scrolldelay="60" data-marquee>
+        ✨ Welcome to the PocketBase Cyber Plaza &nbsp; ⚡️ Realtime records! &nbsp; 💾 Import your data, wow your friends! &nbsp; 📟 Tip: press “I’m Feeling Retro” for a surprise! ✨
+      </marquee>
+    </div>
+
+    <header class="hero">
+      <h1>PocketBase Demo Dashboard</h1>
+      <p class="subtitle">Interact with CRUD, realtime, and authentication features from your browser.</p>
+      <div class="status">
+        <span id="authStatus">Not signed in</span>
+        <span id="connectionStatus" class="badge">offline</span>
+      </div>
+    </header>
+
+    <div class="neon-divider" aria-hidden="true">
+      <span>✶ ✶ ✶ CYBER PLAZA CONTROL CENTER ✶ ✶ ✶</span>
+    </div>
+
+    <main class="layout">
+      <section class="panel auth-panel">
+        <h2>Authentication</h2>
+        <div class="card">
+          <h3>Create account</h3>
+          <form id="registerForm" autocomplete="off">
+            <label>
+              Email
+              <input type="email" name="email" required />
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" minlength="8" required />
+            </label>
+            <label>
+              Display name
+              <input type="text" name="displayName" maxlength="120" />
+            </label>
+            <button type="submit">Register &amp; sign in</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3>Sign in</h3>
+          <form id="loginForm" autocomplete="off">
+            <label>
+              Email
+              <input type="email" name="email" value="demo@pocketbase.dev" required />
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" value="PocketBaseDemo42" required />
+            </label>
+            <button type="submit">Sign in</button>
+          </form>
+          <button id="logoutBtn" type="button" class="secondary" disabled>Sign out</button>
+        </div>
+      </section>
+
+      <section class="panel post-panel">
+        <h2>Posts</h2>
+        <div class="card">
+          <h3 id="formTitle">Create post</h3>
+          <form id="postForm">
+            <input type="hidden" name="id" />
+            <label>
+              Title
+              <input type="text" name="title" required minlength="3" maxlength="140" />
+            </label>
+            <label>
+              Slug
+              <input type="text" name="slug" required pattern="^[a-z0-9-]+$" />
+            </label>
+            <label>
+              Content
+              <textarea name="content" rows="4" required></textarea>
+            </label>
+            <label>
+              Status
+              <select name="status">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+            <label>
+              Categories
+              <select name="categories" id="categorySelect" multiple></select>
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" name="featured" />
+              Featured
+            </label>
+            <button type="submit">Save post</button>
+            <button type="button" id="resetFormBtn" class="secondary">Reset</button>
+          </form>
+        </div>
+
+        <div class="card post-list">
+          <div class="list-header">
+            <h3>Live posts</h3>
+            <div class="actions">
+              <button type="button" id="refreshBtn" class="secondary">Refresh</button>
+            </div>
+          </div>
+          <ul id="postsList"></ul>
+        </div>
+      </section>
+
+      <section class="panel log-panel">
+        <h2>Activity log</h2>
+        <div class="card">
+          <pre id="logOutput" aria-live="polite"></pre>
+        </div>
+      </section>
+
+      <section class="panel extras-panel">
+        <h2>Cyber Plaza Bulletin Board</h2>
+        <div class="card bulletin">
+          <h3>Daily Updates</h3>
+          <ul class="bulletin-list">
+            <li>🚀 Fresh collections deploy in under 3 seconds.</li>
+            <li>💾 Offline-first caching keeps demos humming.</li>
+            <li>🛰️ Realtime WebSocket feed monitored 24/7.</li>
+          </ul>
+          <div class="visitor-counter">
+            <span class="counter-label">Visitor Counter:</span>
+            <span class="counter-digits" data-counter>0001337</span>
+          </div>
+          <div class="blinkies">
+            <span>🔥 100% JavaScript Enabled</span>
+            <span>🛰️ Realtime Certified</span>
+            <span>🔒 Authenticated &amp; Awesome</span>
+          </div>
+        </div>
+        <div class="card webring">
+          <h3>PocketBase WebRing</h3>
+          <p>Pick a destination:</p>
+          <div class="webring-links">
+            <a href="https://pocketbase.io" target="_blank" rel="noopener noreferrer">🏠 Official HQ</a>
+            <a href="https://github.com/pocketbase/pocketbase" target="_blank" rel="noopener noreferrer">🛠️ Source Code Shrine</a>
+            <a href="https://github.com/pocketbase/js-sdk" target="_blank" rel="noopener noreferrer">⚙️ JS SDK Garage</a>
+            <a href="https://github.com/pocketbase/awesome-pocketbase" target="_blank" rel="noopener noreferrer">📚 Awesome Archive</a>
+          </div>
+          <button type="button" class="secondary" id="surpriseBtn">I'm Feeling Retro</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-banner">
+        <span>★ Hosted proudly on Localhost 127.0.0.1 ★</span>
+      </div>
+      <div class="footer-links">
+        <a href="mailto:demo@pocketbase.dev">Sign the Guestbook</a>
+        <span class="footer-separator">|</span>
+        <a href="#top">Back to top ↑</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="../node_modules/pocketbase/dist/pocketbase.umd.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

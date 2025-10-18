@@ -8,9 +8,9 @@ This guide explains the capabilities baked into `pocketbase-demo/` and links dir
 
 | Collection | Type | Purpose | Access Rules |
 | ---------- | ---- | ------- | ------------ |
-| `users` | `auth` | Account management with profile fields (`displayName`, `bio`). | List/view limited to self. Update/delete self only. | 
-| `categories` | `base` | Taxonomy used to segment posts. | Public read. Authenticated create/update/delete. |
-| `posts` | `base` | Primary content model referencing authors and categories. | Public read. Authenticated create. Updates/deletes restricted to author (`@request.auth.id = author.id`). |
+| `users` | `auth` | Account management with profile fields (`displayName`, `bio`). Seeds include `Ollama Bot`. | List/view limited to self. Update/delete self only. |
+| `categories` | `base` | Lightweight tags for grouping posts. | Public read. Authenticated create/update/delete. |
+| `posts` | `base` | Social feed posts with relations to authors/categories and an `aiGenerated` toggle. | Public read. Authenticated create. Updates/deletes restricted to author (`@request.auth.id = author.id`). |
 | `comments` | `base` | Discussion tied to posts. Cascades on post removal. | Same author-driven rules as `posts`. |
 
 All relations are wired automatically:
@@ -75,14 +75,34 @@ Scenarios covered:
 
 `PB_USER_EMAIL` and `PB_USER_PASSWORD` can be exported to reuse specific accounts during debugging.
 
+## Ollama Social Stream (`npm run ollama`)
+
+`ollama-feed.mjs` turns the local Ollama service into an automated account:
+
+```bash
+npm run ollama
+# Optional overrides:
+#   OLLAMA_MODEL=llama3.1 OLLAMA_INTERVAL_MS=60000 npm run ollama
+```
+
+Highlights:
+
+- Authenticates with admin credentials (same as the other automation scripts).
+- Ensures the `Ollama Bot` user exists and grabs available category IDs.
+- Prompts the running Ollama HTTP API (`http://127.0.0.1:11434/api/generate` by default) for short-form dev updates.
+- Uploads the content to the `posts` collection, tagging `aiGenerated = true` so the UI can badge the entry.
+- Streams indefinitely with a small jitter so the feed feels organic. Pass `--once` to generate a single post.
+
+If Ollama is not active the script logs the failure and retries after the configured interval.
+
 ## Browser UI (`public/`)
 
-The frontend is intentionally framework-free so it can run from any static file server:
+The PocketFeed interface is framework-free and optimised for a laptop viewport:
 
-- **Authentication panel** – Register, log in, and log out. Buttons and forms automatically disable when the auth store is empty.
-- **Realtime post list** – Uses `pb.collection('posts').subscribe('*', …)` to refresh the list whenever a websocket event fires.
-- **Post editor** – Provides create/update/delete actions with category selection, featured toggle, and slug validation.
-- **Activity log** – Streams REST + realtime events with timestamps for demos or debugging.
+- **Account sidebar** – Log in with the demo credentials (`demo@pocketbase.dev` / `PocketBaseDemo42`) or register a fresh account. Forms disable automatically when signed out.
+- **Composer** – Create posts with live character counts; slugs/titles are generated automatically and the submit button is disabled until you sign in.
+- **Live feed** – Realtime posts render with avatars, relative timestamps, category chips, and an AI badge when `aiGenerated` is true. Authors can delete their own posts inline.
+- **Activity column** – Mirrors REST + realtime events for quick debugging and demos while streaming aggregate stats (total posts, AI share).
 
 Launch steps:
 
@@ -98,8 +118,11 @@ Because the page loads the PocketBase SDK from `../node_modules/pocketbase/dist/
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
 | `PB_BASE_URL` | `http://127.0.0.1:8090` | Override the PocketBase host when running scripts outside localhost. |
-| `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD` | `porchroot@gmail.com` / `AdminPassword69!` | Credentials for admin automation (setup/crud). |
+| `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD` | `porchroot@gmail.com` / `AdminPassword69!` | Credentials for admin automation (setup, CRUD, Ollama feed). |
 | `PB_USER_EMAIL` / `PB_USER_PASSWORD` | `demo@pocketbase.dev` / `PocketBaseDemo42` | Credentials for user-facing demos (realtime/auth). |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Base URL for the local Ollama HTTP API. |
+| `OLLAMA_MODEL` | `llama3` | Model name supplied to Ollama during feed generation. |
+| `OLLAMA_INTERVAL_MS` | `45000` | Delay between automatic posts (jitter is added each cycle). |
 
 Export them before invoking any `npm run <script>` command.
 
