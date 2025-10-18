@@ -1,0 +1,21 @@
+{
+  "name": "pocketbase-demo",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "PocketBase demo with JavaScript SDK",
+  "main": "script.mjs",
+  "scripts": {
+    "start": "node script.mjs",
+    "setup": "node setup.mjs",
+    "crud": "node crud-demo.mjs",
+    "realtime": "node realtime-demo.mjs",
+    "auth": "node auth-demo.mjs",
+    "serve": "./pocketbase serve --http=127.0.0.1:8090",
+    "test": "node test-all.mjs",
+    "verify": "node verify.mjs",
+    "verify:json": "OUTPUT_FORMAT=json node verify.mjs"
+  },
+  "dependencies": {
+    "pocketbase": "^0.26.2"
+  }
+}

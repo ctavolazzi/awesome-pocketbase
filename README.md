@@ -4,9 +4,35 @@
 
 PocketBase is an open source backend consisting of embedded database (SQLite) with realtime subscriptions, built-in auth management, convenient dashboard UI and simple REST-ish API.
 
+## 🎯 Complete Demo Application
+
+This repository includes a **comprehensive PocketBase demo** in [`pocketbase-demo/`](./pocketbase-demo/) showcasing:
+
+- **Full CRUD operations** with pagination, filtering, and error handling
+- **Realtime subscriptions** with live WebSocket updates
+- **User authentication** including registration, login, and profile management
+- **Multi-collection relationships** (users, posts, categories, comments)
+- **Browser-based UI** with activity logging for demos
+- **Idempotent setup** for reproducible environments
+- **Automated test suite** for validation
+
+### Quick Start
+
+```bash
+cd pocketbase-demo
+npm install
+npm run serve &        # Start PocketBase
+npm run setup          # Provision collections and sample data
+npm test               # Run automated tests
+python3 -m http.server 4173   # Serve the UI
+# Visit http://127.0.0.1:4173/public/
+```
+
+See [pocketbase-demo/README.md](./pocketbase-demo/README.md) for detailed documentation and [pocketbase-demo/FEATURES.md](./pocketbase-demo/FEATURES.md) for a complete feature tour.
+
 ## Local demo viewer
 
-This repository ships with an offline-friendly walkthrough that “shows” the list, connectivity probe, and contributor docs without extra tooling. Launch it by serving the repo locally (for example, `python -m http.server 8000`) and then opening [`docs/viewer.html`](./docs/viewer.html) in your browser. The demo caches the README render, connectivity probe history, and document previews so it remains usable even when the npm tooling cannot reach the public registry. Use the built-in “Refresh all data” and “Clear saved data” controls to rerun the probe, regenerate metrics, or wipe cached previews before presenting the walkthrough.
+This repository ships with an offline-friendly walkthrough that "shows" the list, connectivity probe, and contributor docs without extra tooling. Launch it by serving the repo locally (for example, `python -m http.server 8000`) and then opening [`docs/viewer.html`](./docs/viewer.html) in your browser. The demo caches the README render, connectivity probe history, and document previews so it remains usable even when the npm tooling cannot reach the public registry. Use the built-in "Refresh all data" and "Clear saved data" controls to rerun the probe, regenerate metrics, or wipe cached previews before presenting the walkthrough.
 
 ## Contents
 
@@ -111,6 +137,7 @@ This repository ships with an offline-friendly walkthrough that “shows” the 
 
 ## Other tools
 
+- [Complete Demo Application](./pocketbase-demo/) - Full-featured example with CRUD, realtime subscriptions, user auth, and browser UI. Perfect for learning PocketBase.
 - [PocketBaseUML](https://pocketbase-uml.github.io/) - A free, open-source web application that generates UML diagrams based on PocketBase databases.
 - [PocketBaseMobile](https://github.com/rohitsangwan01/pocketbase_mobile) - Android and iOS frameworks for running PocketBase from mobile.
 - [PocketBase+Stripe](https://github.com/mrwyndham/pocketbase-stripe) - Go extended PocketBase for Stripe subscription integration.
