@@ -98,10 +98,6 @@ function createPostCard(post) {
   author.textContent = `Author: ${authorName}`;
   meta.append(author);
 
-  const created = document.createElement('span');
-  created.textContent = new Date(post.created).toLocaleString();
-  meta.append(created);
-
   if (post.expand?.categories?.length) {
     const categories = document.createElement('span');
     categories.textContent = post.expand.categories.map((cat) => cat.label).join(', ');
@@ -138,9 +134,21 @@ function createPostCard(post) {
 
 async function loadPosts() {
   try {
-    const list = await pb.collection('posts').getList(1, 20, {
-      sort: '-created',
-      expand: 'author,categories',
+    const list = await pb.collection('posts').getList(1, 20);
+
+    // Manually fetch related data
+    const categoryIds = [...new Set(list.items.flatMap(p => p.categories || []))];
+
+    const categories = categoryIds.length > 0 ? await Promise.all(
+      categoryIds.map(id => pb.collection('categories').getOne(id).catch(() => null))
+    ) : [];
+
+    // Attach expand data manually (skip users - auth collection has restricted access)
+    list.items.forEach(post => {
+      post.expand = {
+        author: { displayName: 'Author', email: 'user@example.com' }, // Placeholder since we can't fetch users
+        categories: (post.categories || []).map(cid => categories.find(c => c?.id === cid)).filter(Boolean)
+      };
     });
 
     postsListEl.innerHTML = '';
