@@ -101,7 +101,7 @@ function formatRelativeTime(isoString) {
 function renderFeedItem(record) {
   const author = record.expand?.author;
   const categories = record.expand?.categories || [];
-  
+
   const li = document.createElement('li');
   li.className = 'post-item';
   if (record.aiGenerated) {
@@ -111,7 +111,7 @@ function renderFeedItem(record) {
 
   const meta = document.createElement('div');
   meta.className = 'post-meta';
-  
+
   const authorSpan = document.createElement('span');
   authorSpan.className = 'post-author';
   authorSpan.textContent = author?.displayName || author?.email || 'Unknown user';
@@ -319,7 +319,7 @@ async function subscribeToRealtime() {
         const newItem = renderFeedItem(fullRecord);
         postsListEl.prepend(newItem);
         updateStats();
-        
+
         if (fullRecord.aiGenerated) {
           appendLog(`🤖 AI Bot posted: "${fullRecord.title}"`);
         } else {
@@ -419,7 +419,7 @@ if (musicToggle) {
   await loadCategories();
   await loadPosts();
   await subscribeToRealtime();
-  
+
   appendLog('🎉 Welcome to the PocketBase Cyber Plaza!');
   appendLog('🤖 AI-powered 90s social feed is ONLINE!');
   appendLog('💡 Run "npm run ollama" to start AI post generation');

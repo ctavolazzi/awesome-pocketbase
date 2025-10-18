@@ -5,7 +5,7 @@
   line-height: 1.4;
   background: #008080;
   color: #000;
-  background-image: 
+  background-image:
     repeating-linear-gradient(45deg, #008080 0, #008080 10px, #006666 10px, #006666 20px);
 }
 
@@ -628,11 +628,11 @@ body.party-mode {
   .layout {
     grid-template-columns: 1fr;
   }
-  
+
   .browser-badges {
     display: none;
   }
-  
+
   .page {
     padding: 60px 5px 5px 5px;
   }
