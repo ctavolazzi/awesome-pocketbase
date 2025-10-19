@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # PocketBase backend database
   pocketbase:
     image: alpine:latest
     container_name: pocketbase-demo
@@ -19,8 +20,69 @@ services:
       retries: 3
       start_period: 10s
     environment:
-      # Optional: Configure via environment variables
       - PB_ENCRYPTION_KEY=${PB_ENCRYPTION_KEY:-}
+    networks:
+      - pocketbase-network
+
+  # Express API server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: express-api
+    ports:
+      - "3030:3030"
+    environment:
+      # PocketBase connection (use service name in Docker network)
+      - PB_BASE_URL=http://pocketbase:8090
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}
+
+      # Server configuration
+      - APP_PORT=3030
+      - NODE_ENV=${NODE_ENV:-production}
+
+      # CORS configuration (frontend service URL)
+      - ALLOWED_ORIGINS=http://localhost:4173,http://frontend:80
+
+      # Rate limiting
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
+      - CREATE_RATE_LIMIT_MAX=${CREATE_RATE_LIMIT_MAX:-10}
+
+      # Optional monitoring
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENABLE_METRICS=${ENABLE_METRICS:-false}
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3030/healthz', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - pocketbase-network
+
+  # Frontend static files served with Nginx
+  frontend:
+    image: nginx:alpine
+    container_name: frontend-demo
+    ports:
+      - "4173:80"
+    volumes:
+      - ./public:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - pocketbase-network
 

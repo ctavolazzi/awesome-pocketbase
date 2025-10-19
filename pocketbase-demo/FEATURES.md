@@ -8,7 +8,7 @@ This guide explains the capabilities baked into `pocketbase-demo/` and links dir
 
 | Collection | Type | Purpose | Access Rules |
 | ---------- | ---- | ------- | ------------ |
-| `users` | `auth` | Account management with profile fields (`displayName`, `bio`). Seeds include `Ollama Bot`. | List/view limited to self. Update/delete self only. |
+| `users` | `auth` | Account management with profile fields (`displayName`, `bio`). Seeds include `Ollama Bot` and four themed personas. | List/view limited to self. Update/delete self only. |
 | `categories` | `base` | Lightweight tags for grouping posts. | Public read. Authenticated create/update/delete. |
 | `posts` | `base` | Social feed posts with relations to authors/categories and an `aiGenerated` toggle. | Public read. Authenticated create. Updates/deletes restricted to author (`@request.auth.id = author.id`). |
 | `comments` | `base` | Discussion tied to posts. Cascades on post removal. | Same author-driven rules as `posts`. |
@@ -56,6 +56,13 @@ What it covers:
 
 You can open the browser UI simultaneously to watch realtime updates propagate into the live list.
 
+## Pagination & Infinite Scroll
+
+- Browser feed loads 20 posts per page and automatically fetches the next page when you scroll within 200px of the bottom.
+- A neon loading indicator appears while requests are in flight, and an “end of feed” marquee confirms when you’ve reached the first post.
+- The scroll container is capped at 600px so large timelines remain smooth; older posts stream in seamlessly without repainting the entire DOM.
+- When realtime inserts arrive and you’re not at the top, a sticky “↑ X new posts” banner tracks unseen activity—clicking it (or scrolling back up) pulls the latest page.
+
 ## Authentication Walkthrough (`npm run auth`)
 
 `auth-demo.mjs` focuses on end-user flows:
@@ -88,9 +95,9 @@ npm run ollama
 Highlights:
 
 - Authenticates with admin credentials (same as the other automation scripts).
-- Ensures the `Ollama Bot` user exists and grabs available category IDs.
-- Prompts the running Ollama HTTP API (`http://127.0.0.1:11434/api/generate` by default) for short-form dev updates.
-- Uploads the content to the `posts` collection, tagging `aiGenerated = true` so the UI can badge the entry.
+- Rotates through four themed personas (`TechGuru42`, `DeepThoughts`, `LOL_Master`, `NewsBot90s`) without repeating the same voice twice in a row.
+- Persona-specific prompt banks steer Ollama’s style, and each request includes contextual instructions to keep output short (≤350 chars) and conversational.
+- Ensures the persona user accounts exist, grabs available category IDs, and tags every publish with `aiGenerated = true` for UI badging.
 - Streams indefinitely with a small jitter so the feed feels organic. Pass `--once` to generate a single post.
 
 If Ollama is not active the script logs the failure and retries after the configured interval.
@@ -101,7 +108,7 @@ The PocketFeed interface is framework-free and optimised for a laptop viewport:
 
 - **Account sidebar** – Log in with the demo credentials (`demo@pocketbase.dev` / `PocketBaseDemo42`) or register a fresh account. Forms disable automatically when signed out.
 - **Composer** – Create posts with live character counts; slugs/titles are generated automatically and the submit button is disabled until you sign in.
-- **Live feed** – Realtime posts render with avatars, relative timestamps, category chips, and an AI badge when `aiGenerated` is true. Authors can delete their own posts inline.
+- **Live feed** – Realtime posts render with avatars, relative timestamps, category chips, and an AI badge when `aiGenerated` is true. Infinite scroll loads 20 posts at a time, surfaces a loading spinner/end-of-feed banner, and shows a sticky “↑ X new posts” indicator when you’re away from the top.
 - **Activity column** – Mirrors REST + realtime events for quick debugging and demos while streaming aggregate stats (total posts, AI share).
 
 Launch steps:

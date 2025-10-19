@@ -1,0 +1,20 @@
+[2025-10-19T08:19:13.898Z] [INFO] PocketBase admin authentication starting {"reason":"server bootstrap"}
+[2025-10-19T08:19:14.083Z] [INFO] PocketBase admin authentication successful
+[2025-10-19T08:19:14.086Z] [INFO] Sentry not configured (SENTRY_DSN not set)
+📚 API documentation available at /api-docs
+[2025-10-19T08:19:14.117Z] [INFO] Server listening {"port":3030,"cwd":"/Users/ctavolazzi/Code/awesome-pocketbase/pocketbase-demo/server"}
+[2025-10-19T08:19:14.348Z] [DEBUG] PocketBase authStore already valid
+[2025-10-19T08:19:14.361Z] [INFO] Request completed {"method":"GET","path":"/","status":200,"duration":"32ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:21.611Z] [INFO] Request completed {"method":"GET","path":"/healthz","status":200,"duration":"4ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:23.185Z] [INFO] Request completed {"method":"POST","path":"/api/posts","status":401,"duration":"30ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:25.225Z] [DEBUG] PocketBase authStore already valid
+[2025-10-19T08:19:25.248Z] [INFO] Request completed {"method":"GET","path":"/","status":200,"duration":"24ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:25.314Z] [DEBUG] PocketBase authStore already valid
+[2025-10-19T08:19:25.323Z] [INFO] Request completed {"method":"GET","path":"/","status":200,"duration":"11ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:25.376Z] [DEBUG] PocketBase authStore already valid
+[2025-10-19T08:19:25.385Z] [INFO] Request completed {"method":"GET","path":"/","status":200,"duration":"9ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:25.419Z] [DEBUG] PocketBase authStore already valid
+[2025-10-19T08:19:25.426Z] [INFO] Request completed {"method":"GET","path":"/","status":200,"duration":"7ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:25.462Z] [DEBUG] PocketBase authStore already valid
+[2025-10-19T08:19:25.468Z] [INFO] Request completed {"method":"GET","path":"/","status":200,"duration":"7ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:19:26.984Z] [INFO] Request completed {"method":"GET","path":"/api-docs.json","status":200,"duration":"2ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}

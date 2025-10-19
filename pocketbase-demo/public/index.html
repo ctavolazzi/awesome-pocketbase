@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🌟 PocketBase Cyber Plaza 🌟 - AI-Powered 90s Social Feed</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
@@ -16,7 +17,158 @@
     <span class="construction-text">AI-Powered 90s Social Feed - 100% JavaScript!</span>
   </div>
 
-  <!-- BEST VIEWED IN BANNERS -->
+  <!-- CYBER NAVBAR (Fixed Top) -->
+  <nav class="cyber-navbar">
+    <button type="button" id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+      <span class="hamburger">☰</span>
+    </button>
+    <div class="navbar-brand">
+      <span class="brand-logo">🌟 Cyber Plaza 🌟</span>
+    </div>
+    <div class="navbar-actions">
+      <button type="button" id="profileToggle" class="profile-toggle" aria-label="Profile">
+        <span id="userAvatar" class="user-avatar">👤</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- SLIDING MENU OVERLAY -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+
+  <!-- SLIDING SIDE MENU -->
+  <aside class="slide-menu" id="slideMenu">
+    <div class="menu-header">
+      <h2>Menu</h2>
+      <button type="button" class="menu-close" id="menuClose">✕</button>
+    </div>
+
+    <div class="menu-content">
+      <!-- User Profile Section -->
+      <section class="menu-profile">
+        <div class="profile-avatar-large" id="menuUserAvatar">👤</div>
+        <h3 id="menuUserName">Not signed in</h3>
+        <p id="menuUserBio" class="profile-bio"></p>
+      </section>
+
+      <!-- Auth Section -->
+      <section class="menu-section">
+        <h3>Authentication</h3>
+        <div id="authContainer">
+          <form id="loginForm" autocomplete="off">
+            <label>
+              Email
+              <input type="email" name="email" value="demo@pocketbase.dev" autocomplete="username" required />
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" value="PocketBaseDemo42" autocomplete="current-password" required />
+            </label>
+            <button type="submit" class="primary">Sign in</button>
+          </form>
+          <div class="divider"><span>or</span></div>
+          <form id="registerForm" autocomplete="off">
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" minlength="8" autocomplete="new-password" required />
+            </label>
+            <label>
+              Display name
+              <input type="text" name="displayName" maxlength="120" autocomplete="name" />
+            </label>
+            <button type="submit" class="secondary">Register</button>
+          </form>
+          <button id="logoutBtn" type="button" class="secondary logout-btn" disabled>Sign out</button>
+        </div>
+      </section>
+
+      <!-- Stats Section -->
+      <section class="menu-section">
+        <h3>🎪 Stream Stats 🎪</h3>
+        <dl class="stats-list">
+          <div>
+            <dt>Total posts</dt>
+            <dd id="statPosts">—</dd>
+          </div>
+          <div>
+            <dt>AI generated</dt>
+            <dd id="statAiPosts">—</dd>
+          </div>
+          <div>
+            <dt>People online</dt>
+            <dd id="statPeople">1</dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Activity Log -->
+      <section class="menu-section">
+        <h3>💾 Activity Log 💾</h3>
+        <div id="logOutput" aria-live="polite"></div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTAINER -->
+  <main class="main-container">
+    <!-- COMPOSER CARD -->
+    <section class="card composer-modern" id="composerCard">
+      <form id="composerForm" class="composer-form-modern">
+        <div class="composer-header">
+          <div class="composer-avatar" id="composerAvatar">👤</div>
+          <div class="composer-input-area">
+            <textarea
+              name="content"
+              rows="3"
+              maxlength="420"
+              placeholder="What's on your mind?"
+              required></textarea>
+          </div>
+        </div>
+        <div class="composer-footer">
+          <div class="composer-tools">
+            <select name="categories" id="categorySelect" class="category-select-modern" multiple>
+              <option value="" disabled>Add categories...</option>
+            </select>
+          </div>
+          <div class="composer-actions-modern">
+            <span id="charCount" class="char-count-modern">0 / 420</span>
+            <button type="submit" class="btn-publish-modern">Post</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- FEED SECTION -->
+    <section class="feed-section">
+      <div class="feed-header">
+        <h2>🌟 Live Feed 🌟</h2>
+        <button type="button" id="refreshBtn" class="secondary">Refresh</button>
+      </div>
+
+      <div id="newPostsIndicator" class="new-posts-indicator" hidden>
+        <button type="button" id="viewNewPostsBtn">
+          ↑ <span id="newPostsCount">0</span> new posts
+        </button>
+      </div>
+
+      <div id="postsList" class="feed-list"></div>
+
+      <div id="loadingIndicator" class="loading-indicator" hidden>
+        <span class="loading-spinner">⏳</span>
+        <span>Loading more posts...</span>
+      </div>
+
+      <div id="endOfFeed" class="end-of-feed" hidden>
+        <span>🎉 You've reached the beginning! 🎉</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- BEST VIEWED IN BADGES -->
   <div class="browser-badges">
     <div class="badge-item">
       <span class="badge-icon">🌐</span>
@@ -32,137 +184,39 @@
     </div>
   </div>
 
-  <div class="page" id="top">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark">PocketBase Cyber Plaza</span>
-        <span class="brand-tag">AI-Powered 90s Social Feed with Ollama</span>
-      </div>
-      <div class="topbar-status">
-        <span id="connectionStatus" class="status-pill status-pill--offline">Offline</span>
-        <span id="authStatus" class="auth-indicator">Not signed in</span>
-      </div>
-    </header>
-
-    <main class="layout">
-      <aside class="sidebar sidebar--left">
-        <section class="card account-card">
-          <h2>Authentication</h2>
-          <div class="account-section">
-            <form id="loginForm" autocomplete="off">
-              <h3>Sign in</h3>
-              <label>
-                Email
-                <input type="email" name="email" value="demo@pocketbase.dev" required />
-              </label>
-              <label>
-                Password
-                <input type="password" name="password" value="PocketBaseDemo42" required />
-              </label>
-              <button type="submit" class="primary">Sign in</button>
-            </form>
-            <button id="logoutBtn" type="button" class="secondary" disabled>Sign out</button>
-          </div>
-          <div class="divider"><span>or create an account</span></div>
-          <form id="registerForm" autocomplete="off" class="register-form">
-            <label>
-              Email
-              <input type="email" name="email" required />
-            </label>
-            <label>
-              Password
-              <input type="password" name="password" minlength="8" required />
-            </label>
-            <label>
-              Display name
-              <input type="text" name="displayName" maxlength="120" />
-            </label>
-            <button type="submit" class="secondary">Register &amp; join feed</button>
-          </form>
-        </section>
-
-        <section class="card stats-card">
-          <h2>🎪 Stream Stats 🎪</h2>
-          <dl class="stats-list">
-            <div>
-              <dt>Total posts</dt>
-              <dd id="statPosts">—</dd>
-            </div>
-            <div>
-              <dt>AI generated</dt>
-              <dd id="statAiPosts">—</dd>
-            </div>
-            <div>
-              <dt>People online</dt>
-              <dd id="statPeople">1</dd>
-            </div>
-          </dl>
-          <p class="hint">Run <code>npm run ollama</code> to let the local AI model publish updates automatically! 🤖</p>
-        </section>
-      </aside>
-
-      <section class="feed-area">
-        <section class="card composer" id="composerCard">
-          <h2>📝 Post an update 📝</h2>
-          <form id="composerForm">
-            <textarea name="content" rows="4" maxlength="420" placeholder="Share what you and the AI are building in the Cyber Plaza…" required></textarea>
-            <div class="composer-controls">
-              <label class="composer-field">
-                Categories
-                <select name="categories" id="categorySelect" multiple></select>
-              </label>
-              <div class="composer-actions">
-                <span id="charCount">0 / 420</span>
-                <button type="submit" class="primary">Publish</button>
-              </div>
-            </div>
-          </form>
-          <p class="composer-hint">✨ Posts appear instantly for everyone connected to this dashboard!</p>
-        </section>
-
-        <section class="card feed-card">
-          <div class="feed-header">
-            <h2>🌟 Live Feed 🌟</h2>
-            <button type="button" id="refreshBtn" class="secondary">Refresh</button>
-          </div>
-          <ul id="postsList" class="feed"></ul>
-        </section>
-      </section>
-
-      <aside class="sidebar sidebar--right">
-        <section class="card activity-card">
-          <h2>💾 Activity Log 💾</h2>
-          <div id="logOutput" aria-live="polite"></div>
-        </section>
-
-        <section class="card info-card">
-          <h2>🤖 How it works 🤖</h2>
-          <p class="hint">
-            Posts are stored in PocketBase with realtime subscriptions.
-            <br><br>
-            The <strong style="color: #ff00ff;">Ollama Bot</strong> user creates AI-generated updates when <code>npm run ollama</code> is running.
-            <br><br>
-            Sign in with your own account to add posts to the feed!
-            <br><br>
-            🎉 Watch for the glowing <strong>🤖 AI BOT 🤖</strong> badges on AI-generated posts!
-          </p>
-        </section>
-      </aside>
-    </main>
-
-    <footer class="footer">
-      <div style="background: linear-gradient(180deg, #00008b, #191970); color: #ffff00; padding: 12px; border: 4px ridge #ffffff; box-shadow: 6px 6px 0 #000; margin-top: 20px; text-align: center;">
-        <div style="font-family: 'Courier New', monospace; font-size: 14px; letter-spacing: 3px; margin-bottom: 6px;">
-          ★ Built with PocketBase + Ollama · Streaming from <code style="color: #00ffff;">127.0.0.1</code> ★
-        </div>
-        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 12px; font-family: 'Comic Sans MS', cursive;">
-          <a href="#top" style="color: #00ffff; text-decoration: underline;">Back to top ↑</a>
-        </div>
-      </div>
-    </footer>
+  <!-- HIT COUNTER -->
+  <div class="hit-counter">
+    <span class="counter-label">👁️ You are visitor:</span>
+    <div class="counter-display" id="hitCounter">
+      <span class="digit">0</span>
+      <span class="digit">0</span>
+      <span class="digit">0</span>
+      <span class="digit">0</span>
+      <span class="digit">0</span>
+      <span class="digit">0</span>
+    </div>
   </div>
 
-  <script src="../node_modules/pocketbase/dist/pocketbase.umd.js"></script>
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div style="background: linear-gradient(180deg, #00008b, #191970); color: #ffff00; padding: 12px; border: 4px ridge #ffffff; box-shadow: 6px 6px 0 #000; margin-top: 20px; text-align: center;">
+      <div style="font-family: 'Courier New', monospace; font-size: 14px; letter-spacing: 3px; margin-bottom: 6px;">
+        ★ Built with PocketBase + Ollama · Streaming from <code style="color: #00ffff;">127.0.0.1</code> ★
+      </div>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 12px; font-family: 'Comic Sans MS', cursive;">
+        <a href="#top" style="color: #00ffff; text-decoration: underline;">Back to top ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Configuration -->
+  <script>
+    // API Configuration
+    window.API_BASE_URL = 'http://127.0.0.1:3030';
+    window.POCKETBASE_URL = 'http://127.0.0.1:8090';
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.5/dist/pocketbase.umd.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

@@ -1,0 +1,436 @@
+openapi: 3.0.0
+info:
+  title: PocketBase Demo Express API
+  version: 1.0.0
+  description: |
+    Express API server providing validated and secure access to PocketBase backend.
+
+    ## Features
+    - Request validation with Zod schemas
+    - Input sanitization to prevent XSS
+    - Rate limiting to prevent abuse
+    - Authentication via Bearer tokens
+    - Comprehensive error handling
+
+    ## Authentication
+    All POST, PATCH, and DELETE endpoints require authentication via Bearer token:
+    ```
+    Authorization: Bearer <your-pocketbase-token>
+    ```
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3030
+    description: Local development server
+  - url: http://localhost:3030
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: PocketBase authentication token
+
+  schemas:
+    Post:
+      type: object
+      required:
+        - id
+        - title
+        - slug
+        - content
+        - status
+        - author
+        - created
+        - updated
+      properties:
+        id:
+          type: string
+          description: Unique post identifier
+          example: abc123xyz
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Post title
+          example: "My First Blog Post"
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          maxLength: 140
+          description: URL-friendly slug
+          example: "my-first-blog-post"
+        content:
+          type: string
+          description: Post content (HTML allowed)
+          example: "<p>This is the post content.</p>"
+        status:
+          type: string
+          enum: [draft, published, archived]
+          description: Publication status
+          example: "published"
+        categories:
+          type: array
+          items:
+            type: string
+          description: Array of category IDs
+          example: []
+        author:
+          type: string
+          description: Author user ID
+          example: user123
+        featured:
+          type: boolean
+          description: Whether post is featured
+          example: false
+        aiGenerated:
+          type: boolean
+          description: Whether post was AI-generated
+          example: false
+        upvotes:
+          type: integer
+          minimum: 0
+          description: Number of upvotes
+          example: 0
+        downvotes:
+          type: integer
+          minimum: 0
+          description: Number of downvotes
+          example: 0
+        upvotedBy:
+          type: array
+          items:
+            type: string
+          description: Array of user IDs who upvoted
+          example: []
+        downvotedBy:
+          type: array
+          items:
+            type: string
+          description: Array of user IDs who downvoted
+          example: []
+        created:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2025-10-19T12:00:00.000Z"
+        updated:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-10-19T12:00:00.000Z"
+
+    PostCreate:
+      type: object
+      required:
+        - title
+        - content
+        - status
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "New Blog Post"
+        slug:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          maxLength: 140
+          example: "new-blog-post"
+        content:
+          type: string
+          minLength: 1
+          example: "<p>Post content here.</p>"
+        status:
+          type: string
+          enum: [draft, published]
+          example: "draft"
+        categories:
+          type: array
+          items:
+            type: string
+          example: []
+        featured:
+          type: boolean
+          example: false
+        aiGenerated:
+          type: boolean
+          example: false
+
+    PostUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        content:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [draft, published, archived]
+        featured:
+          type: boolean
+
+    PostList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+        page:
+          type: integer
+          example: 1
+        perPage:
+          type: integer
+          example: 20
+        totalItems:
+          type: integer
+          example: 100
+        totalPages:
+          type: integer
+          example: 5
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Validation failed"
+        details:
+          type: object
+          description: Additional error details
+          properties:
+            issues:
+              type: array
+              items:
+                type: object
+                properties:
+                  path:
+                    type: array
+                    items:
+                      type: string
+                  message:
+                    type: string
+
+    HealthCheck:
+      type: object
+      properties:
+        server:
+          type: string
+          enum: [ok, error]
+        pocketbase:
+          type: string
+          enum: [ok, error, unknown]
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          description: Server uptime in seconds
+
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      description: Check server and PocketBase health
+      tags:
+        - Health
+      responses:
+        '200':
+          description: All systems operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+        '503':
+          description: PocketBase is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      description: Prometheus metrics endpoint (if metrics are enabled)
+      tags:
+        - Monitoring
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/posts:
+    get:
+      summary: List posts
+      description: Get paginated list of posts
+      tags:
+        - Posts
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: perPage
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Items per page
+      responses:
+        '200':
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostList'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create post
+      description: Create a new post (requires authentication)
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreate'
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/posts/{id}:
+    get:
+      summary: Get post
+      description: Get a single post by ID
+      tags:
+        - Posts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Post ID
+      responses:
+        '200':
+          description: Post details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update post
+      description: Update an existing post (requires authentication)
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Post ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostUpdate'
+      responses:
+        '200':
+          description: Post updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    $ref: '#/components/schemas/Post'
+                  normalized:
+                    $ref: '#/components/schemas/Post'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Monitoring
+    description: Metrics and observability
+  - name: Posts
+    description: Blog post operations
+

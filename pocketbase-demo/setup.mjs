@@ -135,8 +135,8 @@ async function ensureSchema() {
         },
       },
     ],
-    listRule: '@request.auth.id = id',
-    viewRule: '@request.auth.id = id',
+    listRule: '',
+    viewRule: '',
     createRule: '',
     updateRule: '@request.auth.id = id',
     deleteRule: '@request.auth.id = id',
@@ -247,6 +247,38 @@ async function ensureSchema() {
         type: 'bool',
         required: false,
       },
+      {
+        name: 'upvotes',
+        type: 'number',
+        required: false,
+        options: {
+          min: 0,
+        },
+      },
+      {
+        name: 'downvotes',
+        type: 'number',
+        required: false,
+        options: {
+          min: 0,
+        },
+      },
+      {
+        name: 'upvotedBy',
+        type: 'relation',
+        required: false,
+        collectionId: usersCollection.id,
+        cascadeDelete: false,
+        maxSelect: null,
+      },
+      {
+        name: 'downvotedBy',
+        type: 'relation',
+        required: false,
+        collectionId: usersCollection.id,
+        cascadeDelete: false,
+        maxSelect: null,
+      },
     ],
     listRule: '',
     viewRule: '',
@@ -283,6 +315,22 @@ async function ensureSchema() {
         cascadeDelete: false,
         maxSelect: 1,
       },
+      {
+        name: 'upvotes',
+        type: 'number',
+        required: false,
+        options: {
+          min: 0,
+        },
+      },
+      {
+        name: 'downvotes',
+        type: 'number',
+        required: false,
+        options: {
+          min: 0,
+        },
+      },
     ],
     listRule: '',
     viewRule: '',
@@ -290,6 +338,33 @@ async function ensureSchema() {
     updateRule: '@request.auth.id != ""',
     deleteRule: '@request.auth.id != ""',
   });
+
+  // Add parentComment field with self-reference after collection exists
+  try {
+    const currentFields = commentsCollection.fields || commentsCollection.schema || [];
+    const hasParentComment = currentFields.some(f => f.name === 'parentComment');
+
+    if (!hasParentComment) {
+      const updatedFields = [
+        ...currentFields,
+        {
+          name: 'parentComment',
+          type: 'relation',
+          required: false,
+          collectionId: commentsCollection.id,
+          cascadeDelete: true,
+          maxSelect: 1,
+        }
+      ];
+
+      await pb.collections.update(commentsCollection.id, {
+        fields: updatedFields,
+      });
+      logSuccess('Added parentComment self-reference to comments collection');
+    }
+  } catch (error) {
+    logSkip('Could not add parentComment field (may already exist)');
+  }
 
   const siteStatsCollection = await ensureCollection({
     name: 'site_stats',
@@ -317,19 +392,85 @@ async function ensureSchema() {
     deleteRule: '@request.auth.id != ""',
   });
 
+  const errorLogsCollection = await ensureCollection({
+    name: 'error_logs',
+    type: 'base',
+    schema: [
+      {
+        name: 'level',
+        type: 'select',
+        required: true,
+        values: ['debug', 'info', 'warn', 'error', 'fatal'],
+      },
+      {
+        name: 'message',
+        type: 'text',
+        required: true,
+        options: {
+          max: 1000,
+        },
+      },
+      {
+        name: 'context',
+        type: 'text',
+        required: false,
+        options: {
+          max: 5000,
+        },
+      },
+      {
+        name: 'stack',
+        type: 'text',
+        required: false,
+        options: {
+          max: 10000,
+        },
+      },
+      {
+        name: 'error_details',
+        type: 'text',
+        required: false,
+        options: {
+          max: 5000,
+        },
+      },
+      {
+        name: 'user_id',
+        type: 'text',
+        required: false,
+      },
+      {
+        name: 'session_id',
+        type: 'text',
+        required: false,
+      },
+      {
+        name: 'timestamp',
+        type: 'date',
+        required: true,
+      },
+    ],
+    listRule: '',
+    viewRule: '',
+    createRule: '', // Allow anyone to create logs (errors can happen before auth)
+    updateRule: null, // No updates allowed
+    deleteRule: '@request.auth.id != ""', // Only authenticated users can delete
+  });
+
   return {
     usersCollection,
     categoriesCollection,
     postsCollection,
     commentsCollection,
     siteStatsCollection,
+    errorLogsCollection,
   };
 }
 
 async function seedData({ usersCollection, categoriesCollection, postsCollection, siteStatsCollection }) {
   logStep('Seeding demo data');
 
-  const [demoUser] = await Promise.all([
+  const [demoSeed, editorSeed, ollamaSeed] = await Promise.all([
     seedRecord('users', {
       email: 'demo@pocketbase.dev',
       password: 'PocketBaseDemo42',
@@ -351,6 +492,37 @@ async function seedData({ usersCollection, categoriesCollection, postsCollection
       displayName: 'Ollama Bot',
       bio: 'Local model that shares fresh development updates.',
     }, 'email = "ollama@pocketbase.dev"'),
+  ]);
+
+  await Promise.all([
+    seedRecord('users', {
+      email: 'techguru42@pocketbase.dev',
+      password: 'TechGuru42Pass',
+      passwordConfirm: 'TechGuru42Pass',
+      displayName: 'TechGuru42',
+      bio: '90s tech enthusiast. Building the future one floppy disk at a time. 💾',
+    }, 'email = "techguru42@pocketbase.dev"'),
+    seedRecord('users', {
+      email: 'deepthoughts@pocketbase.dev',
+      password: 'DeepThoughtsPass',
+      passwordConfirm: 'DeepThoughtsPass',
+      displayName: 'DeepThoughts',
+      bio: 'Philosopher of the digital realm. Pondering existence in cyberspace. 🤔',
+    }, 'email = "deepthoughts@pocketbase.dev"'),
+    seedRecord('users', {
+      email: 'lolmaster@pocketbase.dev',
+      password: 'LOLMasterPass',
+      passwordConfirm: 'LOLMasterPass',
+      displayName: 'LOL_Master',
+      bio: 'Chief Meme Officer. Bringing lulz to the timeline since 1995. 😂',
+    }, 'email = "lolmaster@pocketbase.dev"'),
+    seedRecord('users', {
+      email: 'newsbot90s@pocketbase.dev',
+      password: 'NewsBot90sPass',
+      passwordConfirm: 'NewsBot90sPass',
+      displayName: 'NewsBot90s',
+      bio: 'Reporting live from the information superhighway. 📰',
+    }, 'email = "newsbot90s@pocketbase.dev"'),
   ]);
 
   const categories = await Promise.all([
@@ -375,12 +547,17 @@ async function seedData({ usersCollection, categoriesCollection, postsCollection
     .filter(Boolean)
     .map((record) => record.id);
 
-  const demoUserRecord = demoUser
-    ? demoUser
+  const demoUserRecord = demoSeed
+    ? demoSeed
     : await pb.collection('users').getFirstListItem('email = "demo@pocketbase.dev"');
 
-  const editorRecord = await pb.collection('users').getFirstListItem('email = "editor@pocketbase.dev"');
-  const ollamaBot = await pb.collection('users').getFirstListItem('email = "ollama@pocketbase.dev"');
+  const editorRecord = editorSeed
+    ? editorSeed
+    : await pb.collection('users').getFirstListItem('email = "editor@pocketbase.dev"');
+
+  const ollamaBot = ollamaSeed
+    ? ollamaSeed
+    : await pb.collection('users').getFirstListItem('email = "ollama@pocketbase.dev"');
 
   const firstPost = await seedRecord('posts', {
     title: 'Welcome to the PocketBase Demo',
