@@ -11,7 +11,7 @@ describe('Auth Reducer', () => {
   describe('Initial State', () => {
     it('returns initial state when state is undefined', () => {
       const state = authReducer(undefined, { type: '@@INIT' });
-      
+
       assert.deepStrictEqual(state, initialAuthState);
       assert.strictEqual(state.isAuthenticated, false);
       assert.strictEqual(state.user, null);
@@ -20,7 +20,7 @@ describe('Auth Reducer', () => {
     it('returns current state for unknown action', () => {
       const currentState = { ...initialAuthState, user: { id: '123' } };
       const state = authReducer(currentState, { type: 'UNKNOWN_ACTION' });
-      
+
       assert.deepStrictEqual(state, currentState);
     });
   });
@@ -46,7 +46,7 @@ describe('Auth Reducer', () => {
     it('uses current timestamp if meta.timestamp not provided', () => {
       const user = { id: '123', email: 'test@example.com' };
       const before = Date.now();
-      
+
       const state = authReducer(initialAuthState, {
         type: types.AUTH_LOGIN,
         payload: { user }
