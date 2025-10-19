@@ -44,6 +44,8 @@ export const COMMENT_LOAD_SUCCESS = 'COMMENT_LOAD_SUCCESS';
 export const COMMENT_LOAD_FAILURE = 'COMMENT_LOAD_FAILURE';
 
 export const COMMENT_TOGGLE = 'COMMENT_TOGGLE';
+export const COMMENT_REPLY_SET = 'COMMENT_REPLY_SET';
+export const COMMENT_REPLY_CLEAR = 'COMMENT_REPLY_CLEAR';
 
 // ============================================================================
 // UI ACTIONS
@@ -121,7 +123,8 @@ export const POST_ACTIONS = [
 
 export const COMMENT_ACTIONS = [
   COMMENT_CREATE, COMMENT_UPDATE, COMMENT_DELETE, COMMENT_VOTE,
-  COMMENT_LOAD, COMMENT_LOAD_SUCCESS, COMMENT_LOAD_FAILURE, COMMENT_TOGGLE
+  COMMENT_LOAD, COMMENT_LOAD_SUCCESS, COMMENT_LOAD_FAILURE, COMMENT_TOGGLE,
+  COMMENT_REPLY_SET, COMMENT_REPLY_CLEAR
 ];
 
 export const UI_ACTIONS = [
@@ -168,4 +171,3 @@ export function getActionGroup(type) {
   if (type.startsWith('SYSTEM_')) return 'SYSTEM';
   return 'UNKNOWN';
 }
-

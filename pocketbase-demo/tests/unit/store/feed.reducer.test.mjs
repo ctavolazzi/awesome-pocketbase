@@ -11,7 +11,7 @@ describe('Feed Reducer', () => {
   describe('Initial State', () => {
     it('returns initial state when state is undefined', () => {
       const state = feedReducer(undefined, { type: '@@INIT' });
-      
+
       assert.deepStrictEqual(state, initialFeedState);
       assert.strictEqual(state.posts.length, 0);
       assert.strictEqual(state.hasMore, true);
@@ -21,7 +21,7 @@ describe('Feed Reducer', () => {
     it('returns current state for unknown action', () => {
       const currentState = { ...initialFeedState, posts: [{ id: '1' }] };
       const state = feedReducer(currentState, { type: 'UNKNOWN_ACTION' });
-      
+
       assert.deepStrictEqual(state, currentState);
     });
   });
@@ -200,9 +200,9 @@ describe('Feed Reducer', () => {
 
       const state = feedReducer(currentState, {
         type: types.POST_VOTE,
-        payload: { 
-          postId: '123', 
-          upvotes: 1, 
+        payload: {
+          postId: '123',
+          upvotes: 1,
           downvotes: 0,
           upvotedBy: ['user123'],
           downvotedBy: []
