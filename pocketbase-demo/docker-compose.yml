@@ -53,6 +53,17 @@ services:
       # Optional monitoring
       - SENTRY_DSN=${SENTRY_DSN:-}
       - ENABLE_METRICS=${ENABLE_METRICS:-false}
+
+      # AI Provider configuration
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-5-nano-2025-08-07}
+      - OPENAI_MAX_TOKENS=${OPENAI_MAX_TOKENS:-500}
+      - OPENAI_TEMPERATURE=${OPENAI_TEMPERATURE:-0.8}
+      - OLLAMA_URL=${OLLAMA_URL:-http://127.0.0.1:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:1b}
+      - AI_INTERVAL_MS=${AI_INTERVAL_MS:-45000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY_FILE=/run/secrets/openai_key
     depends_on:
       pocketbase:
         condition: service_healthy
@@ -65,6 +76,8 @@ services:
       start_period: 15s
     networks:
       - pocketbase-network
+    secrets:
+      - openai_key
 
   # Frontend static files served with Nginx
   frontend:
@@ -94,3 +107,6 @@ volumes:
   pb_data:
     driver: local
 
+secrets:
+  openai_key:
+    file: ./secrets/openai_key.txt

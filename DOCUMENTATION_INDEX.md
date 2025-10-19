@@ -50,7 +50,9 @@ Essential guides for development:
 - **[pocketbase-demo/docs/COMPOSER_DESIGN.md](./pocketbase-demo/docs/COMPOSER_DESIGN.md)** - Composer redesign
 
 ### AI Integration
-- **[pocketbase-demo/docs/OLLAMA_GUIDE.md](./pocketbase-demo/docs/OLLAMA_GUIDE.md)** - AI feed streaming
+- **[pocketbase-demo/docs/OPENAI_INTEGRATION.md](./pocketbase-demo/docs/OPENAI_INTEGRATION.md)** - GPT-5-nano setup & verification
+- **[pocketbase-demo/docs/AI_CONTENT_PROVIDERS.md](./pocketbase-demo/docs/AI_CONTENT_PROVIDERS.md)** - Provider selection & monitoring
+- **[pocketbase-demo/docs/OLLAMA_GUIDE.md](./pocketbase-demo/docs/OLLAMA_GUIDE.md)** - Ollama streaming guide
 
 ### Testing & Validation
 - **[TESTING_GUIDE.md](./TESTING_GUIDE.md)** - Testing procedures
@@ -298,4 +300,3 @@ Located in `pocketbase-demo/docs/`:
 **Status:** Active
 
 *This index provides comprehensive navigation for all project documentation.*
-

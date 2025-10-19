@@ -163,6 +163,8 @@ Assets should be stored under `docs/visuals/` (create directory) with source fil
 1. Publish matching work effort (`work_efforts/.../00.07_application_overhaul.md`) with scope, owners, and schedule.
 2. Stand up `/docs/visuals/` hierarchy and seed with mermaid sources (this plan) + placeholders for wireframes.
 3. Schedule architecture kick-off with stakeholders to validate phases and resource needs.
+4. Populate OpenAI environment variables (`AI_PROVIDER`, `OPENAI_MODEL`, etc.) and store the API key in `secrets/openai_key.txt`.
+5. Run `npm run verify:openai` to confirm GPT‑5-nano connectivity and capture the initial log entry in `logs/openai.log`.
 
 ---
 _Maintained by: Architecture Working Group (initial draft via Codex)._

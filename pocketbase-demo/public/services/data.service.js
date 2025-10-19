@@ -9,17 +9,60 @@ import { userCreateSchema, authSchema } from '../schemas/user.schema.js';
 import { statsUpdateSchema } from '../schemas/stats.schema.js';
 import * as logger from '../utils/logger.js';
 
+// Import AI service and store helpers (dynamically loaded)
+let AIService, setGenerating, setGenerationComplete, setGenerationError, setProviderSwitch;
+
 class DataService {
   constructor() {
     this.pb = null;
+    this.aiService = null;
+    this.aiEnabled = false;
   }
 
   /**
    * Initialize the service with a PocketBase instance
    * @param {PocketBase} pbInstance - PocketBase instance
+   * @param {Object} options - Additional options
+   * @param {boolean} options.enableAI - Enable AI generation features
    */
-  init(pbInstance) {
+  init(pbInstance, options = {}) {
     this.pb = pbInstance;
+
+    // Optionally enable AI features
+    if (options.enableAI) {
+      this.initAI().catch(err => {
+        logger.warn('Failed to initialize AI service', {}, err);
+      });
+    }
+  }
+
+  /**
+   * Initialize AI service (async to support dynamic imports)
+   * @private
+   */
+  async initAI() {
+    try {
+      // Dynamic imports to avoid loading AI code when not needed
+      const aiServiceModule = await import('../../services/ai.service.js');
+      const aiStoreModule = await import('../store/ai.store.js');
+
+      AIService = aiServiceModule.default || aiServiceModule.AIService;
+      setGenerating = aiStoreModule.setGenerating;
+      setGenerationComplete = aiStoreModule.setGenerationComplete;
+      setGenerationError = aiStoreModule.setGenerationError;
+      setProviderSwitch = aiStoreModule.setProviderSwitch;
+
+      this.aiService = new AIService();
+      this.aiEnabled = true;
+
+      logger.info('AI service initialized', {
+        provider: this.aiService.provider,
+        model: this.aiService.model
+      });
+    } catch (error) {
+      logger.error('Failed to initialize AI service', {}, error);
+      this.aiEnabled = false;
+    }
   }
 
   /**
@@ -449,6 +492,131 @@ class DataService {
       logger.error(message, {}, error);
       throw new Error(message);
     }
+  }
+
+  // ============ AI GENERATION ============
+
+  /**
+   * Generate an AI post using configured provider
+   * @param {string} persona - Persona name (TechGuru42, DeepThoughts, LOL_Master, NewsBot90s)
+   * @param {Object} options - Generation options
+   * @param {boolean} options.stream - Enable streaming (default: false)
+   * @param {string} options.category - Category ID for the post
+   * @returns {Promise<Object>} Created post record
+   */
+  async generateAIPost(persona, options = {}) {
+    if (!this.aiEnabled || !this.aiService) {
+      throw new Error('AI service not initialized. Call init() with enableAI: true');
+    }
+
+    // Update store: Start generation
+    if (setGenerating) {
+      setGenerating(persona);
+    }
+
+    const prompt = "Write a short social media post about 90s internet culture, tech nostalgia, or early web memories. Be authentic and conversational. Keep it under 300 characters.";
+
+    try {
+      logger.info('Starting AI post generation', { persona, provider: this.aiService.provider });
+
+      // Generate content with AI service
+      const result = await this.aiService.generatePost(persona, prompt, {
+        stream: options.stream || false,
+        allowFallback: true
+      });
+
+      logger.info('AI generation complete', {
+        persona,
+        provider: result.provider,
+        contentLength: result.content.length,
+        cost: result.cost,
+        latency: result.latency
+      });
+
+      // Create post in PocketBase
+      const categories = await this.getCategories();
+      const categoryId = options.category || categories.items[Math.floor(Math.random() * categories.items.length)].id;
+
+      const postData = {
+        content: result.content.trim(),
+        author: this.getCurrentUser()?.id || null, // Will be set by system if null
+        categories: [categoryId],
+        aiGenerated: true,
+        status: 'published',
+        upvotes: 0,
+        downvotes: 0
+      };
+
+      const post = await this.createPost(postData);
+
+      logger.info('AI post created in database', {
+        postId: post.id,
+        persona,
+        categoryId
+      });
+
+      // Update store: Generation complete
+      if (setGenerationComplete) {
+        setGenerationComplete({
+          persona,
+          content: result.content.trim(),
+          post,
+          provider: result.provider,
+          cost: result.cost,
+          latency: result.latency,
+          usage: result.usage
+        });
+      }
+
+      // Track provider switch if fallback occurred
+      if (result.provider !== this.aiService.config.provider && setProviderSwitch) {
+        setProviderSwitch(result.provider);
+        logger.warn('AI provider switched', {
+          from: this.aiService.config.provider,
+          to: result.provider
+        });
+      }
+
+      return {
+        post,
+        aiResult: {
+          provider: result.provider,
+          model: result.model,
+          cost: result.cost,
+          latency: result.latency,
+          usage: result.usage
+        }
+      };
+
+    } catch (error) {
+      logger.error('AI post generation failed', { persona }, error);
+
+      // Update store: Generation error
+      if (setGenerationError) {
+        setGenerationError(error);
+      }
+
+      throw new Error(`Failed to generate AI post: ${error.message || error}`);
+    }
+  }
+
+  /**
+   * Get AI service statistics
+   * @returns {Object} AI service stats
+   */
+  getAIStats() {
+    if (!this.aiEnabled || !this.aiService) {
+      return null;
+    }
+    return this.aiService.getStats();
+  }
+
+  /**
+   * Check if AI features are enabled
+   * @returns {boolean}
+   */
+  isAIEnabled() {
+    return this.aiEnabled;
   }
 
   // ============ REALTIME ============

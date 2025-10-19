@@ -1,17 +1,19 @@
 import PocketBase from 'pocketbase';
+import AIService from './services/ai.service.js';
 
 const BASE_URL = process.env.PB_BASE_URL || 'http://127.0.0.1:8090';
 const ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL || 'porchroot@gmail.com';
 const ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD || 'AdminPassword69!';
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:3b';
-const INTERVAL_MS = parseInt(process.env.OLLAMA_INTERVAL_MS || '45000', 10);
+const INTERVAL_MS = parseInt(process.env.AI_INTERVAL_MS || process.env.OLLAMA_INTERVAL_MS || '45000', 10);
 const ONCE = process.argv.includes('--once');
+const PRIMARY_PROVIDER = process.env.AI_PROVIDER || 'openai';
 
 const pb = new PocketBase(BASE_URL);
+const aiService = new AIService({ provider: PRIMARY_PROVIDER });
 
 const personas = [
   {
+    id: 'TechGuru42',
     email: 'techguru42@pocketbase.dev',
     style: 'enthusiastic technology evangelist who loves 90s web nostalgia',
     prompts: [
@@ -23,6 +25,7 @@ const personas = [
     ],
   },
   {
+    id: 'DeepThoughts',
     email: 'deepthoughts@pocketbase.dev',
     style: 'philosophical observer who reflects on technology and humanity',
     prompts: [
@@ -34,6 +37,7 @@ const personas = [
     ],
   },
   {
+    id: 'LOL_Master',
     email: 'lolmaster@pocketbase.dev',
     style: 'comedian developer who turns dev life into memes',
     prompts: [
@@ -45,6 +49,7 @@ const personas = [
     ],
   },
   {
+    id: 'NewsBot90s',
     email: 'newsbot90s@pocketbase.dev',
     style: 'breaking news reporter broadcasting from 1995',
     prompts: [
@@ -62,7 +67,7 @@ const personaCache = new Map();
 
 function getNextPersona() {
   if (personas.length === 0) {
-    throw new Error('No personas configured for Ollama feed.');
+    throw new Error('No personas configured for AI feed.');
   }
 
   let nextIndex;
@@ -99,13 +104,12 @@ async function getPersonaAuthorId(persona) {
 function createTitleFromBody(body) {
   const plain = body.replace(/\s+/g, ' ').trim();
   if (!plain) {
-    return 'Ollama Post';
+    return 'AI Generated Post';
   }
 
   const sentenceMatch = plain.match(/[^.!?]+[.!?]/);
   const sentence = sentenceMatch ? sentenceMatch[0] : plain;
-  const clipped = sentence.length > 60 ? `${sentence.slice(0, 57)}…` : sentence;
-  return clipped;
+  return sentence.length > 60 ? `${sentence.slice(0, 57)}…` : sentence;
 }
 
 function slugify(input) {
@@ -114,89 +118,35 @@ function slugify(input) {
     .replace(/[^a-z0-9]+/g, '-');
 }
 
-async function generateWithOllama(prompt, style) {
-  const fullPrompt = `You are a ${style}. ${prompt}\n\nWrite a casual, authentic micro-post for our 90s-inspired developer social feed. Keep it under 350 characters. Avoid hashtags and corporate buzzwords.`;
+async function generateWithAI(persona) {
+  const basePrompt = getPersonaPrompt(persona);
+  const personaLabel = persona.id || persona.email.split('@')[0];
+  const prompt = `You are a ${persona.style}. ${basePrompt}\n\nWrite a casual, authentic micro-post for our 90s-inspired developer social feed. Keep it under 350 characters. Avoid hashtags and corporate buzzwords.`;
 
   console.log('\n┌─────────────────────────────────────────────────');
-  console.log('│ 🤖 AI GENERATING (streaming)...');
-  console.log('│ Style:', style);
-  console.log('│ Prompt:', prompt.substring(0, 60) + '...');
+  console.log('│ 🤖 AI GENERATING ...');
+  console.log('│ Persona:', personaLabel);
+  console.log('│ Provider:', aiService.provider);
+  console.log('│ Prompt:', basePrompt.substring(0, 60) + '...');
   console.log('└─────────────────────────────────────────────────\n');
 
-  const response = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: OLLAMA_MODEL,
-      prompt: fullPrompt,
-      stream: true, // Enable streaming!
-      options: {
-        temperature: 0.9,
-        top_k: 40,
-        top_p: 0.95,
-        repeat_penalty: 1.3,
-        num_predict: 150,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ollama request failed with status ${response.status}`);
+  const result = await aiService.generatePost(personaLabel, prompt, { allowFallback: true });
+  const content = result?.content?.trim() ?? '';
+  if (!content) {
+    throw new Error('AI generation returned empty content');
   }
 
-  // Process the streaming response
-  let fullText = '';
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-
-  console.log('💭 '); // Start of generation indicator
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-
-      if (done) {
-        break;
-      }
-
-      // Decode the chunk
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter(line => line.trim());
-
-      for (const line of lines) {
-        try {
-          const json = JSON.parse(line);
-
-          if (json.response) {
-            // Print each token as it arrives
-            process.stdout.write(json.response);
-            fullText += json.response;
-          }
-
-          if (json.done) {
-            console.log('\n'); // New line after complete generation
-            break;
-          }
-        } catch (e) {
-          // Skip invalid JSON lines
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
+  console.log('✅ Generation complete!');
+  console.log(`   Provider: ${result.provider}`);
+  if (result.latency != null) {
+    console.log(`   Latency: ${result.latency}ms`);
   }
-
-  const text = fullText.trim();
-  if (!text) {
-    throw new Error('Ollama returned an empty response');
+  if (result.cost != null) {
+    console.log(`   Cost: $${result.cost.toFixed(6)}`);
   }
-
-  console.log('✅ Generation complete! Length:', text.length, 'chars');
   console.log('─────────────────────────────────────────────────\n');
 
-  return text;
+  return { content, result };
 }
 
 function randomCategories(categoryIds) {
@@ -214,12 +164,12 @@ async function getCategoryIds() {
   return list.items.map((item) => item.id);
 }
 
-async function postUpdate({ body, authorId, categories }) {
+async function createPost({ body, authorId, categories }) {
   const title = createTitleFromBody(body);
-  const slugBase = slugify(title || `ollama-post-${Date.now()}`);
+  const slugBase = slugify(title || `ai-post-${Date.now()}`);
   const slug = `${slugBase}-${Date.now().toString(36)}`;
 
-  const record = await pb.collection('posts').create(
+  return pb.collection('posts').create(
     {
       title,
       slug,
@@ -236,8 +186,6 @@ async function postUpdate({ body, authorId, categories }) {
     },
     { requestKey: null },
   );
-
-  return record;
 }
 
 async function runOnce() {
@@ -255,13 +203,11 @@ async function runOnce() {
       getCategoryIds(),
     ]);
 
-    const prompt = getPersonaPrompt(persona);
-    const body = await generateWithOllama(prompt, persona.style);
+    const { content, result } = await generateWithAI(persona);
 
     console.log('📤 Publishing to PocketBase...');
-
-    const record = await postUpdate({
-      body,
+    const record = await createPost({
+      body: content,
       authorId,
       categories: randomCategories(categoryIds),
     });
@@ -269,20 +215,17 @@ async function runOnce() {
     console.log('✨ POST PUBLISHED!');
     console.log('   ID:', record.id);
     console.log('   Title:', record.title);
-    console.log('   Author:', personaName);
-    console.log('   Categories:', record.categories.length);
-    console.log('   AI Generated: ✓');
+    console.log('   Provider:', result.provider);
+    if (result.cost != null) {
+      console.log('   Cost:', `$${result.cost.toFixed(6)}`);
+    }
     console.log('   Timestamp:', new Date().toISOString());
     console.log('═══════════════════════════════════════════════════\n');
-
-    // Also log in the simple format for the log file
-    console.log(`📝 ${personaName} posted (${record.id}) at ${new Date().toISOString()}`);
-
   } catch (error) {
-    console.error('\n❌ Failed to publish Ollama post');
+    console.error('\n❌ Failed to publish AI post');
     console.error('Error:', error.message || error);
     if (error.stack) {
-      console.error('Stack:', error.stack);
+      console.error(error.stack);
     }
   } finally {
     pb.authStore.clear();
@@ -290,14 +233,12 @@ async function runOnce() {
 }
 
 async function runLoop() {
-  console.log('🤖 Starting Multi-Persona AI feed loop');
-  console.log(`   Model: ${OLLAMA_MODEL}`);
+  console.log('🤖 Starting AI feed loop');
+  console.log(`   Primary provider: ${PRIMARY_PROVIDER}`);
   console.log(`   Personas: ${personas.length}`);
   console.log(`   Interval: ${INTERVAL_MS}ms`);
 
-  await authenticateAdmin();
-  let categoryIds = await getCategoryIds();
-  pb.authStore.clear();
+  let categoryIds = [];
 
   while (true) {
     try {
@@ -309,29 +250,30 @@ async function runLoop() {
         categoryIds = await getCategoryIds();
       }
 
-      const prompt = getPersonaPrompt(persona);
-      const body = await generateWithOllama(prompt, persona.style);
-      const record = await postUpdate({
-        body,
+      const { content, result } = await generateWithAI(persona);
+      const record = await createPost({
+        body: content,
         authorId,
-        categories: randomCategories(categoryIds || []),
+        categories: randomCategories(categoryIds),
       });
 
       const personaName = persona.email.split('@')[0];
-      console.log(`📝 ${personaName} posted (${record.id}) at ${new Date().toISOString()}`);
+      console.log(`📝 ${personaName} posted (${record.id}) via ${result.provider}`);
     } catch (error) {
-      console.error('⚠️  Ollama posting failed:', error.message || error);
+      console.error('\n❌ Loop iteration failed');
+      console.error('Error:', error.message || error);
+      if (error.stack) {
+        console.error(error.stack);
+      }
     } finally {
       pb.authStore.clear();
+      await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
     }
-
-    const jitter = Math.floor(Math.random() * 15000);
-    await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS + jitter));
   }
 }
 
 if (ONCE) {
-  runOnce();
+  runOnce().then(() => process.exit(0));
 } else {
   runLoop();
 }

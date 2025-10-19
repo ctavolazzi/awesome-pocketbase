@@ -16,6 +16,10 @@ pocketbase.log
 # Environment files
 .env
 .env.local
+secrets/openai_key.txt
+
+# Logs
+logs/
 
 # OS files
 .DS_Store
@@ -26,4 +30,5 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-
+logs/*.log
+secrets/*.txt

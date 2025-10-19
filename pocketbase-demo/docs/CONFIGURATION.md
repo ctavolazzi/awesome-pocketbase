@@ -116,6 +116,40 @@ SENTRY_TRACES_SAMPLE_RATE=0.1
 SENTRY_PROFILES_SAMPLE_RATE=0.05
 ```
 
+### AI Provider Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AI_PROVIDER` | No | `openai` | Primary AI provider (`openai` or `ollama`) |
+| `OPENAI_API_KEY` | When `AI_PROVIDER=openai` | — | OpenAI API key |
+| `OPENAI_MODEL` | No | `gpt-5-nano-2025-08-07` | OpenAI model identifier |
+| `OPENAI_MAX_TOKENS` | No | `500` | Max tokens per generation |
+| `OPENAI_TEMPERATURE` | No | `0.8` | Creativity (0.0–2.0) |
+| `OLLAMA_URL` | No | `http://127.0.0.1:11434` | Ollama server URL |
+| `OLLAMA_MODEL` | No | `llama3.2:1b` | Ollama fallback model |
+| `AI_INTERVAL_MS` | No | `45000` | Interval between AI posts (ms) |
+
+**Notes:**
+- Store API keys securely (Docker secrets or secret manager) and avoid committing them to source control.
+- When OpenAI calls fail, the AI service falls back to Ollama automatically.
+- `AI_INTERVAL_MS` is shared by both providers for scheduling generation jobs.
+
+**Example (.env):**
+```bash
+AI_PROVIDER=openai
+OPENAI_API_KEY=sk-proj-...
+OPENAI_MODEL=gpt-5-nano-2025-08-07
+OPENAI_MAX_TOKENS=500
+OPENAI_TEMPERATURE=0.8
+
+# Fallback provider
+OLLAMA_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=llama3.2:1b
+
+# Generation cadence
+AI_INTERVAL_MS=45000
+```
+
 ## Configuration File Structure
 
 ### Local Development (.env)
@@ -346,4 +380,3 @@ SENTRY_TRACES_SAMPLE_RATE=0.1
 - [Security Guide](./SECURITY.md) - Security configuration and best practices
 - [Architecture](./ARCHITECTURE.md) - System architecture and design
 - [Deployment](../DEPLOYMENT.md) - Deployment guides
-
