@@ -172,7 +172,7 @@ app.use('/api/', apiLimiter);
 ```javascript
 async function executeWithAuth(action) {
   await ensureAuth();
-  
+
   try {
     return await action(pb);
   } catch (err) {
@@ -207,13 +207,13 @@ async function executeWithAuth(action) {
 export async function createPost(data) {
   // Validate against schema
   const payload = validateForCreate(data);
-  
+
   // Add defaults (slug, etc.)
   const withDefaults = ensureDefaults(payload);
-  
+
   // Log the operation
   info('Creating post', { title: withDefaults.title });
-  
+
   // Call PocketBase with auth
   return executeWithAuth((pb) =>
     pb.collection('posts').create(withDefaults)
