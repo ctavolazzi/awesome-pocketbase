@@ -18,3 +18,7 @@
 [2025-10-19T08:19:25.462Z] [DEBUG] PocketBase authStore already valid
 [2025-10-19T08:19:25.468Z] [INFO] Request completed {"method":"GET","path":"/","status":200,"duration":"7ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
 [2025-10-19T08:19:26.984Z] [INFO] Request completed {"method":"GET","path":"/api-docs.json","status":200,"duration":"2ms","ip":"::ffff:127.0.0.1","userAgent":"curl/8.7.1"}
+[2025-10-19T08:25:05.531Z] [INFO] Received SIGTERM, starting graceful shutdown
+[2025-10-19T08:25:05.533Z] [INFO] HTTP server closed
+[2025-10-19T08:25:05.533Z] [INFO] PocketBase connection cleaned up
+[2025-10-19T08:25:05.533Z] [INFO] Graceful shutdown complete
