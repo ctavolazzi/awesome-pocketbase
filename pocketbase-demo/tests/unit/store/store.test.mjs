@@ -170,10 +170,13 @@ describe('Store - Base Store System', () => {
   });
 
   describe('reset', () => {
-    test('clears all state', () => {
+    test('restores initial state snapshot', () => {
       store.setState('count', 100);
       store.reset();
-      assert.deepEqual(store.getState(), {});
+      assert.deepEqual(store.getState(), {
+        user: { name: 'Alice', age: 30 },
+        count: 0
+      });
     });
 
     test('notifies all listeners', () => {
@@ -243,4 +246,3 @@ describe('Store - Base Store System', () => {
     });
   });
 });
-

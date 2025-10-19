@@ -1,7 +1,7 @@
 # Critical Bug Fixes - Action System Integration
 
-**Date:** October 19, 2025  
-**Context:** Phase 3 Day 1 - Fixing critical bugs before store integration  
+**Date:** October 19, 2025
+**Context:** Phase 3 Day 1 - Fixing critical bugs before store integration
 **Status:** 🔧 In Progress
 
 ---
@@ -13,15 +13,15 @@ Three critical bugs identified before production integration:
 ### Bug #1: Validation Before Middleware ✅ FIXED
 **File:** `action-system.js:78`
 
-**Problem:**  
+**Problem:**
 Validation ran before middleware execution, so async actions (thunks/promises) threw "Action must be an object" before the async middleware could unwrap them.
 
-**Impact:**  
+**Impact:**
 - Async actions couldn't work
 - Thunks (functions) rejected immediately
 - Promises rejected before processing
 
-**Fix:**  
+**Fix:**
 Moved validation from `dispatch()` to `_baseDispatch()` so it runs AFTER middleware transforms the action.
 
 ```javascript
@@ -52,15 +52,15 @@ _baseDispatch(action) {
 ### Bug #2: Store setState API Mismatch ✅ FIXED
 **File:** `action-system.js:125`
 
-**Problem:**  
+**Problem:**
 `_baseDispatch` called `store.setState(newState)` but the Store class only supports `setState(path, value)` with dot-notation paths. This would crash as soon as a real store was registered.
 
-**Impact:**  
+**Impact:**
 - Reducer-based state updates would fail
 - Runtime crash on first action dispatch
 - Store integration impossible
 
-**Fix:**  
+**Fix:**
 Added `replaceState()` method to Store class and updated action system to use it. Falls back to `batchUpdate()` if `replaceState()` not available.
 
 ```javascript
@@ -91,15 +91,15 @@ if (typeof store.replaceState === 'function') {
 ### Bug #3: Reset Wipes State Instead of Restoring ✅ FIXED
 **File:** `store.js:101`
 
-**Problem:**  
+**Problem:**
 `reset()` wiped store to `{}` instead of restoring initial state. Time-travel debugging relies on `reset()` to restore the initial state, then replay actions. Reducers only apply defaults when state is `undefined`, so rewinding replayed from an empty object instead of the proper initial shape.
 
-**Impact:**  
+**Impact:**
 - Time-travel debugging broken
 - State import/export broken
 - Rewind functionality produced wrong state
 
-**Fix:**  
+**Fix:**
 1. Preserve `initialState` in constructor (deep cloned)
 2. Restore `initialState` in `reset()`
 3. Added `_deepClone()` method for proper deep copying
@@ -185,8 +185,8 @@ After fixes:  23/28 passing (5 failing due to mock store API mismatch)
 
 These fixes were applied AFTER the v1.0-phase2-complete archive.
 
-**Archive Tag:** `v1.0-phase2-complete`  
-**Archive Commit:** `5e19870`  
+**Archive Tag:** `v1.0-phase2-complete`
+**Archive Commit:** `5e19870`
 
 To see the working version before these fixes:
 ```bash

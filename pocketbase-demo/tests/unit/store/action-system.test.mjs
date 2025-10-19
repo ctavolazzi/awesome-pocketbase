@@ -130,7 +130,8 @@ describe('ActionDispatcher', () => {
       let currentState = initialState;
       const mockStore = {
         getState: () => currentState,
-        setState: (newState) => { currentState = newState; }
+        replaceState: (newState) => { currentState = newState; },
+        batchUpdate: (updates) => { currentState = { ...currentState, ...updates }; }
       };
 
       dispatcher.registerReducer('counter', reducer);
@@ -254,7 +255,12 @@ describe('ActionDispatcher', () => {
 
       const mockStore = {
         getState: () => ({ count }),
-        setState: (newState) => { count = newState.count; },
+        replaceState: (newState) => { count = newState.count; },
+        batchUpdate: (updates) => {
+          if (Object.prototype.hasOwnProperty.call(updates, 'count')) {
+            count = updates.count;
+          }
+        },
         reset: () => { count = 0; }
       };
 
@@ -316,7 +322,8 @@ describe('ActionDispatcher', () => {
       dispatcher.registerReducer('test', (state = { value: 1 }, action) => state);
       const mockStore = {
         getState: () => ({ value: 1 }),
-        setState: () => {},
+        replaceState: () => {},
+        batchUpdate: () => {},
         reset: () => {}
       };
       dispatcher.registerStore('test', mockStore);
@@ -343,7 +350,8 @@ describe('ActionDispatcher', () => {
       dispatcher.registerReducer('test', (state = {}, action) => state);
       const mockStore = {
         getState: () => ({}),
-        setState: () => {},
+        replaceState: () => {},
+        batchUpdate: () => {},
         reset: () => {}
       };
       dispatcher.registerStore('test', mockStore);
@@ -417,4 +425,3 @@ describe('Action Utilities', () => {
     });
   });
 });
-

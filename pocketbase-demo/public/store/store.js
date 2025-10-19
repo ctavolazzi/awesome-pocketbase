@@ -252,7 +252,7 @@ export class Store {
       obj.forEach((value, key) => cloned.set(key, this._deepClone(value)));
       return cloned;
     }
-    
+
     const cloned = {};
     Object.keys(obj).forEach(key => {
       cloned[key] = this._deepClone(obj[key]);
