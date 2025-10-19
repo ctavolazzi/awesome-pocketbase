@@ -4,6 +4,7 @@
 export class Store {
   constructor(name, initialState = {}) {
     this.name = name;
+    this.initialState = this._deepClone(initialState); // Preserve original initial state
     this.state = initialState;
     this.listeners = new Map(); // path -> Set of callbacks
     this.history = []; // State history for debugging
@@ -100,8 +101,21 @@ export class Store {
    */
   reset() {
     const oldState = { ...this.state };
-    this.state = {};
-    this._recordHistory('RESET', null, {}, oldState);
+    this.state = this._deepClone(this.initialState);
+    this._recordHistory('RESET', null, this.state, oldState);
+    this._notifyAll();
+    return this;
+  }
+
+  /**
+   * Replace entire state (used by action system)
+   * @param {Object} newState - New state object
+   * @returns {Store} this (for chaining)
+   */
+  replaceState(newState) {
+    const oldState = { ...this.state };
+    this.state = newState;
+    this._recordHistory('REPLACE', null, newState, oldState);
     this._notifyAll();
     return this;
   }
@@ -221,6 +235,29 @@ export class Store {
     } catch {
       return '[Unserializable]';
     }
+  }
+
+  /**
+   * Deep clone an object (for preserving initial state)
+   * More robust than JSON.parse/stringify for special types
+   * @private
+   */
+  _deepClone(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (obj instanceof Date) return new Date(obj);
+    if (obj instanceof Array) return obj.map(item => this._deepClone(item));
+    if (obj instanceof Set) return new Set([...obj].map(item => this._deepClone(item)));
+    if (obj instanceof Map) {
+      const cloned = new Map();
+      obj.forEach((value, key) => cloned.set(key, this._deepClone(value)));
+      return cloned;
+    }
+    
+    const cloned = {};
+    Object.keys(obj).forEach(key => {
+      cloned[key] = this._deepClone(obj[key]);
+    });
+    return cloned;
   }
 }
 

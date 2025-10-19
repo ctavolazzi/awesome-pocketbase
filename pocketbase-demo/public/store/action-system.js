@@ -76,16 +76,6 @@ export class ActionDispatcher {
    * Dispatch an action through the middleware pipeline
    */
   dispatch(action) {
-    // Validate action
-    if (this.enableValidation) {
-      this._validateAction(action);
-    }
-
-    // Don't record actions during replay
-    if (!this.isReplaying && this.enableHistory) {
-      this._recordAction(action);
-    }
-
     // Build middleware chain
     const middlewareAPI = {
       dispatch: (a) => this.dispatch(a),
@@ -97,6 +87,7 @@ export class ActionDispatcher {
     const composedDispatch = this._compose(...chain)(this._baseDispatch.bind(this));
 
     // Execute the action through the chain
+    // Middleware (like async) can transform functions/promises before validation
     return composedDispatch(action);
   }
 
@@ -104,6 +95,16 @@ export class ActionDispatcher {
    * Base dispatch - applies action to reducers and updates stores
    */
   _baseDispatch(action) {
+    // Validate action after middleware transforms
+    if (this.enableValidation) {
+      this._validateAction(action);
+    }
+
+    // Don't record actions during replay
+    if (!this.isReplaying && this.enableHistory) {
+      this._recordAction(action);
+    }
+
     if (this.enableLogging) {
       console.group(`[Action] ${action.type}`);
       console.log('Payload:', action.payload);
@@ -123,7 +124,17 @@ export class ActionDispatcher {
 
       // Only update if state changed
       if (newState !== currentState) {
-        store.setState(newState);
+        // Use replaceState if available, otherwise batch update all keys
+        if (typeof store.replaceState === 'function') {
+          store.replaceState(newState);
+        } else {
+          // Batch update all top-level keys
+          const updates = {};
+          Object.keys(newState).forEach(key => {
+            updates[key] = newState[key];
+          });
+          store.batchUpdate(updates);
+        }
       }
     });
 
