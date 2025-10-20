@@ -31,7 +31,7 @@ describe('Dispatcher Integration', () => {
     // Register stores and reducers
     dispatcher.registerStore('auth', authStore);
     dispatcher.registerReducer('auth', authReducer);
-    
+
     dispatcher.registerStore('feed', feedStore);
     dispatcher.registerReducer('feed', feedReducer);
   });
@@ -43,7 +43,7 @@ describe('Dispatcher Integration', () => {
   describe('Auth Flow Integration', () => {
     it('dispatches login action and updates auth store', () => {
       const user = { id: '123', email: 'test@example.com' };
-      
+
       dispatcher.dispatch({
         type: types.AUTH_LOGIN,
         payload: { user },
@@ -89,7 +89,7 @@ describe('Dispatcher Integration', () => {
   describe('Feed Flow Integration', () => {
     it('dispatches post creation and updates feed store', () => {
       const post = { id: '1', title: 'Test Post', content: 'Content' };
-      
+
       dispatcher.dispatch({
         type: types.POST_CREATE,
         payload: { post }
@@ -117,7 +117,7 @@ describe('Dispatcher Integration', () => {
       // Success (replace)
       dispatcher.dispatch({
         type: types.POST_CREATE_SUCCESS,
-        payload: { 
+        payload: {
           tempId,
           post: { id: realId, title: 'Test', created: '2025-01-01' }
         }
@@ -131,7 +131,7 @@ describe('Dispatcher Integration', () => {
 
     it('handles post voting', () => {
       const post = { id: '1', title: 'Post', upvotes: 0, downvotes: 0 };
-      
+
       dispatcher.dispatch({
         type: types.POST_CREATE,
         payload: { post }
@@ -139,7 +139,7 @@ describe('Dispatcher Integration', () => {
 
       dispatcher.dispatch({
         type: types.POST_VOTE,
-        payload: { 
+        payload: {
           postId: '1',
           upvotes: 1,
           downvotes: 0,

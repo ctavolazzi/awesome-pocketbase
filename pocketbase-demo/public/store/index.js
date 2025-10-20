@@ -1,5 +1,11 @@
 // store/index.js - Central export for all stores
 
+import { AI_EVENTS } from './ai.store.js';
+import { AUTH_EVENTS } from './auth.store.js';
+import { FEED_EVENTS } from './feed.store.js';
+import { COMMENTS_EVENTS } from './comments.store.js';
+import { UI_EVENTS } from './ui.store.js';
+
 export { Store } from './store.js';
 
 // Stores
@@ -94,4 +100,3 @@ export const STORE_EVENTS = {
   ...COMMENTS_EVENTS,
   ...UI_EVENTS
 };
-

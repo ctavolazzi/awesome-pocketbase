@@ -226,6 +226,10 @@ export function commentsReducer(state = initialCommentsState, action) {
       const existing = state.commentsByPost[postId] || [];
       const nextComments = prependComment(existing, comment);
 
+      if (nextComments === existing) {
+        return state;
+      }
+
       const existingCount = state.newCommentsCountByPost[postId] || 0;
 
       return {
@@ -236,7 +240,7 @@ export function commentsReducer(state = initialCommentsState, action) {
         },
         newCommentsCountByPost: {
           ...state.newCommentsCountByPost,
-          [postId]: existing === nextComments ? existingCount : existingCount + 1
+          [postId]: existingCount + 1
         }
       };
     }

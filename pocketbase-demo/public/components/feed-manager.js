@@ -1,25 +1,27 @@
 /**
  * Feed Manager Component
  * Handles feed loading, pagination, infinite scroll, and new posts indicator
- * Wired to feedStore for state management
+ * Driven by the dispatcher and feed store subscriptions.
  */
 
-import { feedStore, setPosts, addPosts, clearPosts } from '../store/feed.store.js';
+import { feedStore } from '../store/index.js';
+import { dispatch, getState } from '../store/dispatcher.js';
+import { loadPosts, viewNewPosts as viewNewPostsAction } from '../store/actions/feed.actions.js';
 import { showError, showInfo } from './toast.js';
 
 export class FeedManagerComponent {
-  constructor(postCardRenderer, dataService) {
+  constructor(postCardRenderer, dataService, options = {}) {
     this.postCardRenderer = postCardRenderer;
     this.dataService = dataService;
 
-    // State
+    // Derived state
     this.isLoading = false;
     this.currentPage = 1;
     this.hasMorePosts = true;
-    this.postsPerPage = 20;
+    this.postsPerPage = options.postsPerPage || 20;
     this.newPostsCount = 0;
 
-    // DOM elements
+    // DOM nodes
     this.feedContainer = null;
     this.loadingIndicator = null;
     this.endOfFeedEl = null;
@@ -27,11 +29,25 @@ export class FeedManagerComponent {
     this.newPostsCountEl = null;
     this.viewNewPostsBtn = null;
 
-    // Event target for custom events
+    // Event system
     this.eventTarget = new EventTarget();
+    this.unsubscribeFns = [];
 
-    // Bind methods
+    // Bindings
     this.handleScroll = this.handleScroll.bind(this);
+
+    // Dependency injection hooks (used in tests)
+    this.dispatch = options.dispatch || dispatch;
+    this.getState = options.getState || getState;
+    this.feedStore = options.feedStore || feedStore;
+    this.actions = {
+      loadPosts: options.actions?.loadPosts || loadPosts,
+      viewNewPosts: options.actions?.viewNewPosts || viewNewPostsAction
+    };
+    this.toast = {
+      error: options.toast?.showError || showError,
+      info: options.toast?.showInfo || showInfo
+    };
   }
 
   /**
@@ -50,36 +66,94 @@ export class FeedManagerComponent {
       return;
     }
 
-    // Attach event listeners
     this.attachEventListeners();
+    this.subscribeToStore();
 
-    // Initialize feed
+    // Render current store snapshot (if any)
+    const initialPosts = this.feedStore.getState('posts') || [];
+    this.renderPosts(initialPosts);
+
+    // Kick off initial load
     this.loadPosts(1, false);
 
     console.log('✅ FeedManager initialized');
   }
 
   /**
-   * Attach event listeners
+   * Attach DOM listeners
    */
   attachEventListeners() {
-    // Infinite scroll
     window.addEventListener('scroll', this.handleScroll, { passive: true });
-
-    // View new posts button
     if (this.viewNewPostsBtn) {
       this.viewNewPostsBtn.addEventListener('click', () => this.viewNewPosts());
+    }
+    if (typeof window.scrollTo !== 'function') {
+      window.scrollTo = () => {};
     }
   }
 
   /**
-   * Load posts with pagination
-   * @param {number} page - Page number to load
-   * @param {boolean} append - Whether to append or replace posts
+   * Subscribe to feed store updates
+   */
+  subscribeToStore() {
+    this.unsubscribeFns.push(
+      this.feedStore.subscribe('posts', (posts = []) => {
+        this.renderPosts(posts);
+      })
+    );
+
+    this.unsubscribeFns.push(
+      this.feedStore.subscribe('isLoading', (loading) => {
+        this.toggleLoadingIndicator(Boolean(loading));
+      })
+    );
+
+    this.unsubscribeFns.push(
+      this.feedStore.subscribe('hasMore', (hasMore) => {
+        if (typeof hasMore === 'boolean') {
+          this.hasMorePosts = hasMore;
+          if (this.feedContainer) {
+            this.toggleEndOfFeed(!this.hasMorePosts && this.feedContainer.children.length > 0);
+          }
+        }
+      })
+    );
+
+    this.unsubscribeFns.push(
+      this.feedStore.subscribe('currentPage', (page) => {
+        if (typeof page === 'number') {
+          this.currentPage = page;
+        }
+      })
+    );
+
+    this.unsubscribeFns.push(
+      this.feedStore.subscribe('newPostsAvailable', (count) => {
+        this.newPostsCount = count || 0;
+        this.updateNewPostsIndicator();
+      })
+    );
+  }
+
+  /**
+   * Render posts into the container
+   */
+  renderPosts(posts) {
+    if (!this.feedContainer) return;
+
+    const fragment = document.createDocumentFragment();
+    posts.forEach((post) => {
+      fragment.appendChild(this.postCardRenderer.render(post));
+    });
+
+    this.feedContainer.replaceChildren(fragment);
+  }
+
+  /**
+   * Load posts through dispatcher
    */
   async loadPosts(page = 1, append = false) {
     if (this.isLoading) return;
-
     this.isLoading = true;
     this.emit('load:start', { page, append });
 
@@ -92,52 +166,28 @@ export class FeedManagerComponent {
     this.toggleLoadingIndicator(true);
 
     try {
-      const result = await this.dataService.getPosts(page, this.postsPerPage);
+      await this.dispatch(this.actions.loadPosts(page, this.postsPerPage));
 
-      if (!append) {
-        this.feedContainer.innerHTML = '';
-        clearPosts();
-      }
-
-      // Render each post
-      const posts = result.items || [];
-      posts.forEach((post) => {
-        const postCard = this.postCardRenderer.render(post);
-        this.feedContainer.appendChild(postCard);
-      });
-
-      // Update pagination state
-      this.hasMorePosts = result.page < result.totalPages;
-      this.currentPage = page;
-      this.toggleEndOfFeed(!this.hasMorePosts && this.feedContainer.children.length > 0);
-
-      // Update store
-      if (append) {
-        addPosts(posts);
-      } else {
-        setPosts(posts);
-      }
+      const feedState = this.getState()?.feed || {};
+      this.hasMorePosts = feedState.hasMore ?? this.hasMorePosts;
+      this.currentPage = feedState.currentPage ?? page;
 
       this.emit('load:success', {
-        page: result.page,
-        totalPages: result.totalPages,
-        count: posts.length,
+        page: this.currentPage,
+        count: (feedState.posts || []).length,
         hasMore: this.hasMorePosts
       });
-
     } catch (error) {
       console.error('Failed to load posts:', error);
-      showError('Failed to load posts');
-
+      this.toast.error('Failed to load posts');
       this.hasMorePosts = false;
       this.toggleEndOfFeed(false);
 
-      if (error.message && error.message.includes('Failed to load posts')) {
-        showInfo('Ensure PocketBase server is running');
+      if (error?.message?.includes('Failed to load posts')) {
+        this.toast.info('Ensure PocketBase server is running');
       }
 
-      this.emit('load:error', { page, error: error.message });
-
+      this.emit('load:error', { page, error: error.message || String(error) });
     } finally {
       this.toggleLoadingIndicator(false);
       this.isLoading = false;
@@ -145,20 +195,19 @@ export class FeedManagerComponent {
   }
 
   /**
-   * Refresh the feed (reload first page)
+   * Refresh feed
    */
   async refresh() {
     await this.loadPosts(1, false);
   }
 
   /**
-   * Handle infinite scroll
+   * Infinite scroll handler
    */
   handleScroll() {
     const scrollPosition = window.scrollY + window.innerHeight;
-    const documentHeight = document.documentElement.scrollHeight;
+    const documentHeight = document.documentElement.scrollHeight || 0;
 
-    // Load next page when near bottom
     if (scrollPosition >= documentHeight - 500 && this.hasMorePosts && !this.isLoading) {
       const nextPage = this.currentPage + 1;
       this.loadPosts(nextPage, true);
@@ -166,23 +215,19 @@ export class FeedManagerComponent {
   }
 
   /**
-   * Add new post to the top of feed (optimistic UI)
-   * @param {Object} post - Post to add
+   * Add new post with highlight (used by realtime/optimistic flows)
    */
   addNewPost(post, highlight = true) {
+    if (!this.feedContainer) return;
     const postCard = this.postCardRenderer.render(post, { highlight });
     this.feedContainer.prepend(postCard);
-
-    // Update new posts indicator
     this.newPostsCount++;
     this.updateNewPostsIndicator();
-
     this.emit('post:added', { post });
   }
 
   /**
-   * Remove post from feed
-   * @param {string} postId - ID of post to remove
+   * Remove post from DOM
    */
   removePost(postId) {
     const postCard = document.getElementById(`post-${postId}`);
@@ -194,8 +239,7 @@ export class FeedManagerComponent {
   }
 
   /**
-   * Update post in feed
-   * @param {Object} post - Updated post data
+   * Update specific post card
    */
   updatePost(post) {
     const existingCard = document.getElementById(`post-${post.id}`);
@@ -206,28 +250,18 @@ export class FeedManagerComponent {
     }
   }
 
-  /**
-   * Toggle loading indicator
-   */
   toggleLoadingIndicator(show) {
     if (!this.loadingIndicator) return;
     this.loadingIndicator.hidden = !show;
   }
 
-  /**
-   * Toggle end of feed indicator
-   */
   toggleEndOfFeed(show) {
     if (!this.endOfFeedEl) return;
     this.endOfFeedEl.hidden = !show;
   }
 
-  /**
-   * Update new posts indicator
-   */
   updateNewPostsIndicator() {
     if (!this.newPostsIndicator || !this.newPostsCountEl) return;
-
     if (this.newPostsCount > 0) {
       this.newPostsCountEl.textContent = this.newPostsCount.toString();
       this.newPostsIndicator.hidden = false;
@@ -236,25 +270,17 @@ export class FeedManagerComponent {
     }
   }
 
-  /**
-   * Reset new posts state
-   */
   resetNewPostsState() {
     this.newPostsCount = 0;
     this.updateNewPostsIndicator();
   }
 
-  /**
-   * View new posts (scroll to top and refresh)
-   */
   async viewNewPosts() {
+    await this.dispatch(this.actions.viewNewPosts());
     this.resetNewPostsState();
     await this.loadPosts(1, false);
   }
 
-  /**
-   * Get current feed stats
-   */
   getStats() {
     return {
       currentPage: this.currentPage,
@@ -265,40 +291,29 @@ export class FeedManagerComponent {
     };
   }
 
-  /**
-   * Emit custom event
-   */
   emit(eventName, detail = {}) {
     this.eventTarget.dispatchEvent(new CustomEvent(eventName, { detail }));
   }
 
-  /**
-   * Subscribe to component events
-   */
   on(eventName, handler) {
     this.eventTarget.addEventListener(eventName, handler);
   }
 
-  /**
-   * Unsubscribe from component events
-   */
   off(eventName, handler) {
     this.eventTarget.removeEventListener(eventName, handler);
   }
 
-  /**
-   * Cleanup
-   */
   destroy() {
     window.removeEventListener('scroll', this.handleScroll);
-
     if (this.viewNewPostsBtn) {
       this.viewNewPostsBtn.removeEventListener('click', this.viewNewPosts);
     }
-
+    this.unsubscribeFns.forEach(unsub => {
+      if (typeof unsub === 'function') unsub();
+    });
+    this.unsubscribeFns = [];
     console.log('🧹 FeedManager destroyed');
   }
 }
 
 export default FeedManagerComponent;
-

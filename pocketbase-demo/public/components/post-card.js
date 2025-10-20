@@ -1,20 +1,34 @@
 /**
  * Post Card Component
  * Renders individual post cards with voting, deletion, and comment toggling
- * Wired to feedStore and authStore
+ * Now dispatches feed actions instead of mutating stores directly.
  */
 
-import { feedStore, updatePost, removePost } from '../store/feed.store.js';
-import { authStore } from '../store/auth.store.js';
+import { dispatch, getState } from '../store/dispatcher.js';
+import { votePost, deletePost as deletePostAction, updatePost as updatePostAction } from '../store/actions/feed.actions.js';
 import { showSuccess, showError, showWarning } from './toast.js';
 import { getUserAvatar } from '../utils/avatar.js';
 import { stripHtml, formatRelativeTime } from '../utils/formatting.js';
 
 export class PostCardComponent {
-  constructor(pb, dataService) {
+  constructor(pb, dataService, options = {}) {
     this.pb = pb;
     this.dataService = dataService;
     this.state = 'idle';
+
+    // Allow dependency injection for testing
+    this.dispatch = options.dispatch || dispatch;
+    this.getState = options.getState || getState;
+    this.actions = {
+      votePost: options.actions?.votePost || votePost,
+      deletePost: options.actions?.deletePost || deletePostAction,
+      updatePost: options.actions?.updatePost || updatePostAction
+    };
+    this.toast = {
+      success: options.toast?.showSuccess || showSuccess,
+      error: options.toast?.showError || showError,
+      warning: options.toast?.showWarning || showWarning
+    };
 
     // Event target for custom events
     this.eventTarget = new EventTarget();
@@ -146,14 +160,17 @@ export class PostCardComponent {
    */
   async handleVote(postId, voteType) {
     if (!this.pb.authStore.isValid) {
-      showWarning('Please sign in to vote');
+      this.toast.warning('Please sign in to vote');
       return;
     }
 
-    try {
-      const currentPost = feedStore.getState('posts').find(p => p.id === postId);
-      if (!currentPost) return;
+    const feedState = this.getState()?.feed || {};
+    const currentPost = (feedState.posts || []).find(p => p.id === postId);
+    if (!currentPost) return;
 
+    const originalPost = { ...currentPost };
+
+    try {
       // Optimistic update
       const newVote = currentPost.userVote === voteType ? null : voteType;
       const updates = { ...currentPost };
@@ -171,24 +188,22 @@ export class PostCardComponent {
       }
 
       updates.userVote = newVote;
-      updatePost(updates);
+      await this.dispatch(this.actions.updatePost(updates));
 
       // Update UI
       this.updateVoteUI(postId, updates);
 
-      // Persist to backend
-      await this.dataService.voteOnPost(postId, voteType);
-
+      // Persist via action (will dispatch POST_VOTE on success)
+      await this.dispatch(this.actions.votePost(postId, voteType));
       this.emit('vote:success', { postId, voteType, newVote });
 
     } catch (error) {
-      showError('Failed to record vote');
+      this.toast.error('Failed to record vote');
       console.error('Vote error:', error);
 
       // Revert optimistic update on error
-      const posts = feedStore.getState('posts');
-      const originalPost = posts.find(p => p.id === postId);
       if (originalPost) {
+        await this.dispatch(this.actions.updatePost(originalPost));
         this.updateVoteUI(postId, originalPost);
       }
 
@@ -230,22 +245,18 @@ export class PostCardComponent {
         postCard.classList.add('deleting');
       }
 
-      // Delete from backend
-      await this.dataService.deletePost(postId);
-
-      // Remove from store
-      removePost(postId);
+      await this.dispatch(this.actions.deletePost(postId));
 
       // Remove from DOM
       if (postCard) {
         postCard.remove();
       }
 
-      showSuccess('Post deleted');
+      this.toast.success('Post deleted');
       this.emit('delete:success', { postId });
 
     } catch (error) {
-      showError('Failed to delete post');
+      this.toast.error('Failed to delete post');
       console.error('Delete error:', error);
 
       // Revert optimistic removal
@@ -301,4 +312,3 @@ export class PostCardComponent {
 }
 
 export default PostCardComponent;
-

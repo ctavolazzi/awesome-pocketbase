@@ -6,12 +6,18 @@ import { FeedManagerComponent } from './components/feed-manager.js';
 import { CommentThreadComponent } from './components/comment-thread.js';
 import { getUserAvatar } from './utils/avatar.js';
 import { stripHtml, formatRelativeTime } from './utils/formatting.js';
+import { authStore, feedStore } from './store/index.js';
 
 const BASE_URL = window.POCKETBASE_URL || 'http://127.0.0.1:8090';
 const pb = new PocketBase(BASE_URL);
 
 // Initialize data service with PocketBase instance
 dataService.init(pb);
+
+// Expose data service for action creators (dispatcher)
+if (typeof window !== 'undefined') {
+  window.__dataService__ = dataService;
+}
 
 // Initialize PostCard component
 const postCardRenderer = new PostCardComponent(pb, dataService);
@@ -22,6 +28,14 @@ const feedManager = new FeedManagerComponent(postCardRenderer, dataService);
 // Initialize CommentThread component
 const commentThread = new CommentThreadComponent(pb, dataService);
 
+// Track rendered posts for stats/realtime helpers
+const renderedPosts = new Map();
+const syncRenderedPosts = (posts = []) => {
+  renderedPosts.clear();
+  posts.forEach(post => renderedPosts.set(post.id, post));
+  updateStats(posts);
+};
+
 // DOM Elements (minimal - most handled by components)
 const logOutput = document.getElementById('logOutput');
 const statPosts = document.getElementById('statPosts');
@@ -30,7 +44,6 @@ const refreshBtn = document.getElementById('refreshBtn');
 const slideMenu = document.getElementById('slideMenu');
 const menuOverlay = document.getElementById('menuOverlay');
 
-const feedState = new Map();
 const MAX_LOG_LINES = 80;
 
 // Utility Functions
@@ -44,8 +57,7 @@ function appendLog(message) {
   }
 }
 
-function updateStats() {
-  const posts = Array.from(feedState.values());
+function updateStats(posts = feedStore.getState('posts') || []) {
   statPosts.textContent = posts.length.toString();
   const aiCount = posts.filter((post) => post.aiGenerated).length;
   statAiPosts.textContent = aiCount.toString();
@@ -76,7 +88,15 @@ async function updateHitCounter() {
   }
 }
 
-const setComposerEnabledFromAuth = () => setComposerEnabled(pb.authStore.isValid);
+const getIsAuthenticated = () => {
+  const storeValue = authStore?.getState ? authStore.getState('isAuthenticated') : undefined;
+  if (typeof storeValue === 'boolean') {
+    return storeValue;
+  }
+  return pb.authStore.isValid;
+};
+
+const setComposerEnabledFromAuth = () => setComposerEnabled(getIsAuthenticated());
 const setComposerEnabled = (enabled) => {
   composerCard.querySelectorAll('textarea, select, button').forEach(el => el.disabled = !enabled);
   composerCard.classList.toggle('is-disabled', !enabled);
@@ -118,38 +138,55 @@ const renderFeedItem = (record, options = {}) => {
 const composer = new ComposerComponent(pb, dataService);
 composer.init('composerForm');
 
-composer.on('post:optimistic', (e) => {
-  const { post } = e.detail;
-  if (feedState.has(post.id)) return;
-  feedState.set(post.id, post);
-  const el = renderFeedItem(post, { highlight: true });
-  el.dataset.optimistic = 'true';
-  document.getElementById('postsList').prepend(el);
-  appendLog('📤 Publishing...');
+window.addEventListener('composer:submit', (event) => {
+  const { status, message } = event.detail || {};
+  if (status === 'start') appendLog('📤 Publishing...');
+  if (status === 'success') appendLog('✨ Published!');
+  if (status === 'error' && message) appendLog(`❌ ${message}`);
 });
 
-composer.on('post:saved', (e) => {
-  const { tempId, post } = e.detail;
-  feedState.delete(tempId);
-  feedState.set(post.id, post);
-  document.querySelector(`[data-id="${tempId}"]`)?.replaceWith(renderFeedItem(post, { highlight: true }));
-  updateStats();
-  appendLog('✨ Published!');
-});
+syncRenderedPosts(feedStore.getState('posts') || []);
+let previousPostCount = renderedPosts.size;
 
-composer.on('post:failed', (e) => {
-  feedState.delete(e.detail.tempId);
-  document.querySelector(`[data-id="${e.detail.tempId}"]`)?.remove();
-  appendLog(`❌ Failed: ${e.detail.error}`);
+feedStore.subscribe('posts', (posts = []) => {
+  const prevCount = previousPostCount;
+  syncRenderedPosts(posts);
+  if (posts.length > prevCount) {
+    appendLog('✨ Feed updated');
+  } else if (posts.length < prevCount) {
+    appendLog('🗑️ Post removed');
+  }
+  previousPostCount = posts.length;
 });
 
 // AUTH
 const authPanel = new AuthPanelComponent(pb, dataService);
 authPanel.init();
-const handleAuth = (msg) => { appendLog(msg); setComposerEnabledFromAuth(); feedManager.refresh(); toggleMenu(false); };
-authPanel.on('auth:login', () => handleAuth('✅ Logged in'));
-authPanel.on('auth:logout', () => handleAuth('👋 Signed out'));
-authPanel.on('auth:success', (e) => handleAuth(e.detail.type === 'register' ? `✅ Welcome, ${e.detail.email}!` : '✅ Success'));
+
+const handleAuthChange = (isAuthenticated) => {
+  const user = authStore.getState('user');
+  const displayName = user?.displayName || user?.email;
+  const message = isAuthenticated
+    ? (displayName ? `✅ Logged in as ${displayName}` : '✅ Logged in')
+    : '👋 Signed out';
+
+  appendLog(message);
+  setComposerEnabled(isAuthenticated);
+  feedManager.refresh();
+  toggleMenu(false);
+};
+
+let lastAuthState = getIsAuthenticated();
+setComposerEnabled(lastAuthState);
+
+authStore.subscribe('isAuthenticated', (value) => {
+  const isAuthenticated = Boolean(value);
+  if (isAuthenticated === lastAuthState) {
+    return;
+  }
+  lastAuthState = isAuthenticated;
+  handleAuthChange(isAuthenticated);
+});
 
 // REFRESH
 refreshBtn?.addEventListener('click', () => {
@@ -165,20 +202,20 @@ async function subscribeToRealtime() {
       const { action, record } = e;
       const post = action !== 'delete' ? await dataService.getPost(record.id) : null;
 
-      if (action === 'create' && !feedState.has(post.id)) {
-        feedState.set(post.id, post);
+      if (action === 'create' && post && !renderedPosts.has(post.id)) {
+        renderedPosts.set(post.id, post);
         feedEl.prepend(renderFeedItem(post, { highlight: true }));
-        updateStats();
+        updateStats(Array.from(renderedPosts.values()));
         appendLog(post.aiGenerated ? `🤖 AI: "${post.title}"` : `✨ New: "${post.title}"`);
-      } else if (action === 'update') {
-        feedState.set(post.id, post);
+      } else if (action === 'update' && post) {
+        renderedPosts.set(post.id, post);
         document.querySelector(`[data-id="${post.id}"]`)?.replaceWith(renderFeedItem(post));
-        updateStats();
+        updateStats(Array.from(renderedPosts.values()));
       } else if (action === 'delete') {
-        feedState.delete(record.id);
+        renderedPosts.delete(record.id);
         const el = document.querySelector(`[data-id="${record.id}"]`);
         if (el) { el.classList.add('post-card--remove'); setTimeout(() => el.remove(), 300); }
-        updateStats();
+        updateStats(Array.from(renderedPosts.values()));
         appendLog('🗑️ Deleted');
       }
     } catch (err) { appendLog(`❌ ${err.message}`); }
@@ -192,7 +229,10 @@ window.addEventListener('beforeunload', () => { dataService.unsubscribeAll(); da
   setComposerEnabledFromAuth();
   await Promise.all([updateHitCounter(), loadCategories()]);
   feedManager.init('postsList');
-  feedManager.on('load:success', (e) => { updateStats(); appendLog(`✅ Loaded ${e.detail.count} posts`); });
+  feedManager.on('load:success', (e) => {
+    updateStats(feedStore.getState('posts') || []);
+    appendLog(`✅ Loaded ${e.detail.count} posts`);
+  });
   feedManager.on('load:error', (e) => appendLog(`❌ ${e.detail.error}`));
   await subscribeToRealtime();
   appendLog('🎉 Welcome! AI-powered 90s social feed is ONLINE!');

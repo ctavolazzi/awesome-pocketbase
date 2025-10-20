@@ -64,7 +64,7 @@ function registerStores() {
 export function initDispatcher() {
   setupMiddleware();
   registerStores();
-  
+
   console.log('[Dispatcher] Initialized with stores:', {
     auth: authStore.name,
     feed: feedStore.name,

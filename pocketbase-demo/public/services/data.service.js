@@ -284,6 +284,22 @@ class DataService {
   }
 
   /**
+   * Clear the current authentication session
+   */
+  logout() {
+    try {
+      if (this.pb?.authStore) {
+        this.pb.authStore.clear();
+        logger.info('User logged out successfully');
+      }
+    } catch (error) {
+      const message = `Failed to logout: ${error?.message || error}`;
+      logger.error(message, {}, error);
+      throw new Error(message);
+    }
+  }
+
+  /**
    * Authenticate with email and password
    * @param {string} email - User email
    * @param {string} password - User password
@@ -660,4 +676,3 @@ class DataService {
 
 // Export singleton instance
 export const dataService = new DataService();
-

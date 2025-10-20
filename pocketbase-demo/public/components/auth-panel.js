@@ -4,7 +4,9 @@
  * Wired to authStore for reactive state management
  */
 
-import { authStore, setUser, clearUser, setLoading as setAuthLoading } from '../store/auth.store.js';
+import { authStore } from '../store/auth.store.js';
+import { dispatch } from '../store/dispatcher.js';
+import { login, register, logout as logoutAction, checkAuth } from '../store/actions/auth.actions.js';
 import { showSuccess, showError, showInfo } from './toast.js';
 import { getUserAvatar } from '../utils/avatar.js';
 
@@ -24,8 +26,12 @@ export class AuthPanelComponent {
     this.menuUserBio = null;
     this.composerAvatar = null;
 
-    // Event target for custom events
-    this.eventTarget = new EventTarget();
+    // Bound handlers (for add/remove symmetry)
+    this.boundHandleLogin = this.handleLogin.bind(this);
+    this.boundHandleRegister = this.handleRegister.bind(this);
+    this.boundHandleLogout = this.handleLogout.bind(this);
+
+    this.unsubscribeFns = [];
   }
 
   /**
@@ -48,8 +54,8 @@ export class AuthPanelComponent {
     // Subscribe to authStore changes
     this.subscribeToStore();
 
-    // Initial auth status check
-    this.updateAuthStatus();
+    // Initial auth status check (wait for dispatcher registration)
+    setTimeout(() => this.updateAuthStatus(), 0);
 
     // Listen for PocketBase auth changes
     this.pb.authStore.onChange(() => this.updateAuthStatus());
@@ -62,15 +68,15 @@ export class AuthPanelComponent {
    */
   attachEventListeners() {
     if (this.loginForm) {
-      this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+      this.loginForm.addEventListener('submit', this.boundHandleLogin);
     }
 
     if (this.registerForm) {
-      this.registerForm.addEventListener('submit', (e) => this.handleRegister(e));
+      this.registerForm.addEventListener('submit', this.boundHandleRegister);
     }
 
     if (this.logoutBtn) {
-      this.logoutBtn.addEventListener('click', () => this.handleLogout());
+      this.logoutBtn.addEventListener('click', this.boundHandleLogout);
     }
   }
 
@@ -78,13 +84,17 @@ export class AuthPanelComponent {
    * Subscribe to authStore changes
    */
   subscribeToStore() {
-    authStore.subscribe('user', (user) => {
-      this.updateUIForUser(user);
-    });
+    this.unsubscribeFns.push(
+      authStore.subscribe('user', (user) => {
+        this.updateUIForUser(user);
+      })
+    );
 
-    authStore.subscribe('isLoading', (isLoading) => {
-      this.updateLoadingState(isLoading);
-    });
+    this.unsubscribeFns.push(
+      authStore.subscribe('isLoading', (isLoading) => {
+        this.updateLoadingState(Boolean(isLoading));
+      })
+    );
   }
 
   // getUserAvatar moved to utils/avatar.js
@@ -93,20 +103,9 @@ export class AuthPanelComponent {
    * Update auth status from PocketBase
    */
   updateAuthStatus() {
-    if (this.pb.authStore.isValid) {
-      const user = this.pb.authStore.model;
-      setUser({
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName || user.email,
-        bio: user.bio || '',
-        avatar: user.avatar || null
-      });
-      this.emit('auth:login', { user });
-    } else {
-      clearUser();
-      this.emit('auth:logout');
-    }
+    const isValid = this.pb.authStore.isValid;
+    const user = isValid ? this.pb.authStore.model : null;
+    dispatch(checkAuth(user));
   }
 
   /**
@@ -166,6 +165,10 @@ export class AuthPanelComponent {
     if (loggedInContainer) {
       loggedInContainer.hidden = show;
     }
+
+    if (this.logoutBtn) {
+      this.logoutBtn.disabled = show;
+    }
   }
 
   /**
@@ -204,27 +207,16 @@ export class AuthPanelComponent {
       return;
     }
 
-    setAuthLoading(true);
-    this.emit('auth:attempt', { type: 'login', email });
-
     try {
-      await this.dataService.authWithPassword(email, password);
-
+      await dispatch(login(email, password));
       showSuccess(`✅ Signed in as ${email}`);
-      this.emit('auth:success', { type: 'login', email });
 
       // Reset form
       this.loginForm.reset();
 
-      // Update status
-      this.updateAuthStatus();
-
     } catch (error) {
       const message = error.message || 'Login failed';
       showError(`❌ ${message}`);
-      this.emit('auth:error', { type: 'login', error: message });
-    } finally {
-      setAuthLoading(false);
     }
   }
 
@@ -243,38 +235,26 @@ export class AuthPanelComponent {
       return;
     }
 
-    setAuthLoading(true);
-    this.emit('auth:attempt', { type: 'register', email });
-
     try {
-      // Create user
-      await this.dataService.createUser({
+      await dispatch(register({
         email,
         password,
         passwordConfirm: password,
-        displayName,
-      });
+        displayName
+      }));
 
       showSuccess(`✅ Registered ${email}`);
 
       // Auto-login after registration
-      await this.dataService.authWithPassword(email, password);
+      await dispatch(login(email, password));
       showSuccess(`✅ Signed in as ${email}`);
-
-      this.emit('auth:success', { type: 'register', email });
 
       // Reset form
       this.registerForm.reset();
 
-      // Update status
-      this.updateAuthStatus();
-
     } catch (error) {
       const message = error.message || 'Registration failed';
       showError(`❌ ${message}`);
-      this.emit('auth:error', { type: 'register', error: message });
-    } finally {
-      setAuthLoading(false);
     }
   }
 
@@ -282,31 +262,13 @@ export class AuthPanelComponent {
    * Handle logout
    */
   handleLogout() {
-    this.pb.authStore.clear();
-    clearUser();
-    showInfo('👋 Signed out');
-    this.emit('auth:logout');
-  }
-
-  /**
-   * Emit custom event
-   */
-  emit(eventName, detail = {}) {
-    this.eventTarget.dispatchEvent(new CustomEvent(eventName, { detail }));
-  }
-
-  /**
-   * Subscribe to component events
-   */
-  on(eventName, handler) {
-    this.eventTarget.addEventListener(eventName, handler);
-  }
-
-  /**
-   * Unsubscribe from component events
-   */
-  off(eventName, handler) {
-    this.eventTarget.removeEventListener(eventName, handler);
+    try {
+      dispatch(logoutAction());
+      showInfo('👋 Signed out');
+    } catch (error) {
+      const message = error?.message || 'Failed to logout';
+      showError(`❌ ${message}`);
+    }
   }
 
   /**
@@ -327,18 +289,24 @@ export class AuthPanelComponent {
   destroy() {
     // Remove event listeners
     if (this.loginForm) {
-      this.loginForm.removeEventListener('submit', this.handleLogin);
+      this.loginForm.removeEventListener('submit', this.boundHandleLogin);
     }
     if (this.registerForm) {
-      this.registerForm.removeEventListener('submit', this.handleRegister);
+      this.registerForm.removeEventListener('submit', this.boundHandleRegister);
     }
     if (this.logoutBtn) {
-      this.logoutBtn.removeEventListener('click', this.handleLogout);
+      this.logoutBtn.removeEventListener('click', this.boundHandleLogout);
     }
+
+    this.unsubscribeFns.forEach(unsub => {
+      if (typeof unsub === 'function') {
+        unsub();
+      }
+    });
+    this.unsubscribeFns = [];
 
     console.log('🧹 AuthPanel destroyed');
   }
 }
 
 export default AuthPanelComponent;
-
